@@ -1,0 +1,75 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Server",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${input:binFileServer}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "make-prepare-debug",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "Debug Client",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${input:binFileClient}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "make-prepare-debug",
+            "miDebuggerPath": "/usr/bin/gdb"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug Server + Client",
+            "configurations": ["Debug Server", "Debug Client"]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "binFileServer",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "make locate_server",
+                "cwd": "${workspaceFolder}",
+                "useFirstResult": true
+            }
+        },
+        {
+            "id": "binFileClient",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "make locate_client",
+                "cwd": "${workspaceFolder}",
+                "useFirstResult": true
+            }
+        },
+    ]
+}

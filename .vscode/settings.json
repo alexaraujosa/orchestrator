@@ -1,0 +1,44 @@
+{
+    "files.associations": {
+        
+    },
+    "cmake.configureOnOpen": false,
+    "todo-tree.highlights.useColourScheme": true,
+    "todo-tree.general.tagGroups": {},
+    "todo-tree.general.tags": [
+        "BUG",
+        "HACK",
+        "FIXME",
+        "TODO",
+        "XXX",
+        "[ ]",
+        "[x]",
+        "WARN",
+        "SEE",
+        "NOTE"
+    ],
+    "todo-tree.highlights.backgroundColourScheme": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "blue",
+        "indigo",
+        "violet",
+        "orange",
+        "cyan",
+        "white"
+    ],
+    "todo-tree.highlights.foregroundColourScheme": [
+        "white",
+        "black",
+        "black",
+        "white",
+        "white",
+        "white",
+        "black",
+        "black",
+        "black",
+        "black"
+    ],
+}
