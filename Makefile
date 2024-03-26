@@ -14,10 +14,16 @@ BUILDDIR := build
 # Files
 SERVER_SRCS := $(shell find $(SRCDIR)/server -name '*.c')
 CLIENT_SRCS := $(shell find $(SRCDIR)/client -name '*.c')
+COMMON_SRCS := $(shell find $(SRCDIR)/common -name '*.c')
+
 SERVER_OBJS := $(SERVER_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 CLIENT_OBJS := $(CLIENT_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+COMMON_OBJS := $(COMMON_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+
 SERVER_DEPS := $(SERVER_OBJS:.o=.d)
 CLIENT_DEPS := $(CLIENT_OBJS:.o=.d)
+COMMON_DEPS := $(CLIENT_OBJS:.o=.d)
+
 INC := -I$(INCDIR)
 
 # Targets
@@ -32,17 +38,18 @@ server: $(SERVER_EXEC)
 
 client: $(CLIENT_EXEC)
 
-$(SERVER_EXEC): $(SERVER_OBJS)
+$(SERVER_EXEC): $(COMMON_OBJS) $(SERVER_OBJS)
 	mkdir -p $(BUILDDIR)
-	$(CC) $(LDFLAGS) $(SERVER_OBJS) -o $@ $(LDLIBS)
+	$(CC) $(LDFLAGS) $(COMMON_OBJS) $(SERVER_OBJS) -o $@ $(LDLIBS)
 
-$(CLIENT_EXEC): $(CLIENT_OBJS)
+$(CLIENT_EXEC): $(COMMON_OBJS) $(CLIENT_OBJS)
 	mkdir -p $(BUILDDIR)
-	$(CC) $(LDFLAGS) $(CLIENT_OBJS) -o $@ $(LDLIBS)
+	$(CC) $(LDFLAGS) $(COMMON_OBJS) $(CLIENT_OBJS) -o $@ $(LDLIBS)
 
 # Include the dependency files
 -include $(SERVER_DEPS)
 -include $(CLIENT_DEPS)
+-include $(COMMON_DEPS)
 
 # Rule to compile source files and generate dependency files for server
 $(OBJDIR)/server/%.o: $(SRCDIR)/server/%.c
@@ -51,6 +58,11 @@ $(OBJDIR)/server/%.o: $(SRCDIR)/server/%.c
 
 # Rule to compile source files and generate dependency files for client
 $(OBJDIR)/client/%.o: $(SRCDIR)/client/%.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INC) -MMD -MP -c $< -o $@
+
+# Rule to compile source files and generate dependency files for common
+$(OBJDIR)/common/%.o: $(SRCDIR)/common/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INC) -MMD -MP -c $< -o $@
 
