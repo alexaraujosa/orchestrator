@@ -6,11 +6,11 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/${input:binFileServer}",
-            "args": [],
+            "args": ["a", "a", "a"],    // ARGUMENTOSSSSSSSSSS
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": true,
+            "externalConsole": false,   // FUCK THIS SHIT
             "MIMode": "gdb",
             "setupCommands": [
                 {
