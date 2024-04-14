@@ -10,6 +10,20 @@
 #include <linux/limits.h>
 #include <unistd.h>
 
+/**
+ * @brief The name for the server fifo.
+ */
+#define SERVER_FIFO "sv_fifo"
+
+/**
+ * @brief The name for the client fifo.
+ */
+#define CLIENT_FIFO "cl_fifo"
+
+/**
+ * @brief The name of tasks files.
+*/
+#define TASK "task_"
 
 /**
  * @brief The filesystem path separator for Unix systems. 
