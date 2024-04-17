@@ -4,10 +4,6 @@
 
 DATAGRAM_HEADER create_datagram_header() {
    DATAGRAM_HEADER dh = {
-        // .version = DATAGRAM_VERSION,
-        // .header_len = DATAGRAM_HEADER_LENGTH,
-        // .type = 0,
-        // ._gap_0 = 0
         .version = DATAGRAM_VERSION,
         .mode = DATAGRAM_MODE_NONE,
         .type = DATAGRAM_TYPE_NONE,

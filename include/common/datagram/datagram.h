@@ -19,15 +19,24 @@ typedef enum datagram_type {
 } DatagramType;
 
 typedef struct datagram_header {
-    // uint8_t version;
-    // uint8_t header_len;
-    // uint8_t type;
-    // uint8_t _gap_0;
     uint8_t version;
     uint8_t mode;
     uint8_t type;
     pid_t pid;
 } DATAGRAM_HEADER, *DatagramHeader;
+
+
+/**
+ * @brief Checks whether a datagram header is supported on the current version.
+ * @param header A DATAGRAM_HEADER
+ */
+#define IS_DATAGRAM_SUPPORTED_H(header) (header.version == DATAGRAM_VERSION)
+
+/**
+ * @brief Checks whether a datagram is supported on the current version.
+ * @param datagram A datagram that implements a DATAGRAM_HEADER.
+ */
+#define IS_DATAGRAM_SUPPORTED(datagram) (IS_DATAGRAM_SUPPORTED_H(datagram.header))
 
 /**
  * @brief Creates a new empty Status Datagram.

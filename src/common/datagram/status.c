@@ -11,7 +11,7 @@
 StatusDatagram create_status_datagram() {
     STATUS_DATAGRAM dg = {
         .header = create_datagram_header(),
-        .data = 123
+        .data = 0
     };
 
     dg;
@@ -21,7 +21,7 @@ StatusDatagram read_status_datagram(int fd) {
     #define ERR NULL
 
     StatusDatagram status = calloc(1, sizeof(STATUS_DATAGRAM));
-    SAFE_READ(fd, status, 8);
+    SAFE_READ(fd, status, sizeof(STATUS_DATAGRAM));
 
     return status;
 }
