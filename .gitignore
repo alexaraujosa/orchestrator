@@ -58,3 +58,6 @@ dkms.conf
 # Generated directories
 build/
 obj/
+
+# Sidecar files
+**/.$*
