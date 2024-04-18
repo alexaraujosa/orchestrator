@@ -2,6 +2,27 @@
 #define COMMON_UTIL_STRING_H
 
 /**
+ * @brief Checks whether two strings are equal.
+ * 
+ * @param a A string.
+ * @param b Another string.
+ * 
+ * @returns A boolean value that represents whether the strings are equal.
+ */
+#define STRING_EQUAL(a, b) (strcmp((a), (b)) == 0)
+
+/**
+ * @brief Checks whether the first n characters of two strings are equal.
+ * 
+ * @param a A string.
+ * @param b Another string.
+ * @param n A number of characters for the prefix.
+ * 
+ * @returns A boolean value that represents whether the prefixes are equal.
+ */
+#define STRING_BEGIN_EQUAL(a, b, n) (strncmp((a), (b), (n)) == 0)
+
+/**
  * @brief Format the parameters to a string.
  * 
  * @param format String format.

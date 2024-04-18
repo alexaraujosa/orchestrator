@@ -4,7 +4,6 @@
 #include <sys/types.h>
 
 #define DATAGRAM_VERSION 2
-#define DATAGRAM_HEADER_LENGTH 4
 
 typedef enum datagram_mode {
     DATAGRAM_MODE_NONE,

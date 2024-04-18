@@ -1,4 +1,5 @@
 #include "common/util/string.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -32,11 +33,11 @@ char* bytes_to_hex_string(char* bytes, int len, char separator) {
     int totalLen = separator ? (3 * len) - 1 : (2 * len);
     char* str = (char*)calloc(totalLen + 1, sizeof(char));
 
-    unsigned char* pin = bytes;
+    unsigned char* pin = (unsigned char*)bytes;
     const char* hex = "0123456789ABCDEF";
     char* pout = str;
     
-    for(; pin < bytes + len; pout += 2 + !!separator, pin++){
+    for(; pin < ((unsigned char*)bytes) + len; pout += 2 + !!separator, pin++){
         pout[0] = hex[(*pin >> 4) & 0xF];
         pout[1] = hex[*pin & 0xF];
         if (separator) pout[2] = ':';
