@@ -31,7 +31,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": true,
+            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {
@@ -42,6 +42,33 @@
             ],
             "preLaunchTask": "make-prepare-debug",
             "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "Debug Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${input:binFileTest}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "make-prepare-debug",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "sourceFileMap": {
+                "${workspaceFolder}": {
+                    "editorPath": "${workspaceFolder}",
+                    "useForBreakpoints": "true"
+                }
+            }
         }
     ],
     "compounds": [
@@ -67,6 +94,16 @@
             "command": "shellCommand.execute",
             "args": {
                 "command": "make locate_client",
+                "cwd": "${workspaceFolder}",
+                "useFirstResult": true
+            }
+        },
+        {
+            "id": "binFileTest",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "make locate_test",
                 "cwd": "${workspaceFolder}",
                 "useFirstResult": true
             }

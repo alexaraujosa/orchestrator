@@ -1,6 +1,18 @@
 {
     "files.associations": {
-        
+        "*.ejs": "html",
+        "test_util.h": "c",
+        "datagram.h": "c",
+        "compare": "c",
+        "type_traits": "c",
+        "cmath": "c",
+        "limits": "c",
+        "new": "c",
+        "test.h": "c",
+        "status.h": "c",
+        "fcntl.h": "c",
+        "execute.h": "c",
+        "string.h": "c"
     },
     "cmake.configureOnOpen": false,
     "todo-tree.highlights.useColourScheme": true,
