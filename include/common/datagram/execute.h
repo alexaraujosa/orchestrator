@@ -3,23 +3,23 @@
 
 #include "common/datagram/datagram.h"
 
-#define EXECUTE_DATAGRAM_PAYLOAD_LEN 300
+#define EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN 300
 
-typedef struct execute_datagram {
+typedef struct execute_request_datagram {
     DATAGRAM_HEADER header;
-    char data[EXECUTE_DATAGRAM_PAYLOAD_LEN];
-} EXECUTE_DATAGRAM, *ExecuteDatagram;
+    char data[EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN];
+} EXECUTE_REQUEST_DATAGRAM, *ExecuteRequestDatagram;
 
 /**
  * @brief Creates a new empty Execute Datagram.
  */
-ExecuteDatagram create_execute_datagram();
+ExecuteRequestDatagram create_execute_request_datagram();
 
 /**
  * @brief Reads an Execute Datagram from a file descriptor, or NULL if it fails.
  * @param fd The file descriptor to read.
  */
-ExecuteDatagram read_execute_datagram(int fd);
+ExecuteRequestDatagram read_execute_request_datagram(int fd);
 
 
 /**
@@ -29,15 +29,15 @@ ExecuteDatagram read_execute_datagram(int fd);
  * @param fd     The file descriptor to read.
  * @param header The already read header.
  */
-ExecuteDatagram read_partial_execute_datagram(int fd, DATAGRAM_HEADER header);
+ExecuteRequestDatagram read_partial_execute_request_datagram(int fd, DATAGRAM_HEADER header);
 
 /**
  * @brief Returns a string representation for a Datagram Header.
  * 
- * @param header A pointer to an EXECUTE_DATAGRAM structure containing an execute datagram.
+ * @param header A pointer to an EXECUTE_REQUEST_DATAGRAM structure containing an execute datagram.
  * @param expandEnums Whether the enums should be displayed as their numerical value or string value.
  * @param stringPayload Whether the payload should be displayed as a string instead of a byte sequence.
  */
-char* execute_datagram_to_string(ExecuteDatagram dg, int expandEnums, int stringPayload);
+char* execute_request_datagram_to_string(ExecuteRequestDatagram dg, int expandEnums, int stringPayload);
 
 #endif

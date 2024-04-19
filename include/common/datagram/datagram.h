@@ -24,7 +24,6 @@ typedef struct datagram_header {
     pid_t pid;
 } DATAGRAM_HEADER, *DatagramHeader;
 
-
 /**
  * @brief Checks whether a datagram header is supported on the current version.
  * @param header A DATAGRAM_HEADER

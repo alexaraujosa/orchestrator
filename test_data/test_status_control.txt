@@ -1,1 +1,0 @@
-StatusDatagram{ header: DatagramHeader{ version: 2, mode: 2, type: 1, pid: 305419896 }, data: '4C:6F:72:65:6D:20:69:70' }
