@@ -117,10 +117,23 @@
 #define CREATE_SECURE_DIR(dirname, mode) ({\
     int status = mkdir(dirname, mode);\
     if (status) {\
-        perror("ERROR! Exception occured while creating file.\n");\
+        perror("ERROR! Exception occurred while creating file.\n");\
         exit(EXIT_FAILURE);\
     }\
     status;\
+})
+
+#define SETUP_ID(fd) ({\
+    int id = 0;\
+    ssize_t r = read(fd, &id, sizeof(int));\
+    if(r == 0) {\
+        ssize_t w = write(fd, &id, sizeof(int));\
+        if(w == 0) {\
+            perror("ERROR! Exception occurred while writing to id file.\n");\
+            exit(EXIT_FAILURE);\
+        }\
+    }\
+    id;\
 })
 
 /**
