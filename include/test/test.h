@@ -1,6 +1,16 @@
 #ifndef TEST_H
 #define TEST_H
 
+#include <signal.h>
+
+/**
+ * @brief Whether the tests should be ran on debug mode. 
+ */
+extern int IS_DEBUG;
+
+#define ESCAPE_STR(x) #x
+#define STR(x) ESCAPE_STR(x)
+
 /**
  * @brief Fails a test.
  * 
@@ -25,5 +35,12 @@
  * @param msg The reason for the failure, if it happens.
  */
 #define ASSERT(cond, msg) if (!(cond)) ERROR(msg)
+
+#define ERROR_HEADER char* error; int line;
+
+#define DEFAULT_ERROR_LABEL err:\
+    printf("Test failed - %s:%d\n - %s\n", __FILE__, line, error);\
+    if (IS_DEBUG) raise(SIGINT);\
+    else exit(EXIT_FAILURE);
 
 #endif
