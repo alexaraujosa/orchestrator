@@ -25,8 +25,10 @@ DATAGRAM_HEADER read_datagram_header(int fd) {
 char* datagram_header_to_string(DatagramHeader header, int expandEnums) {
     static const char* datagram_mode_strings[] = {
         "DATAGRAM_MODE_NONE",
-        "DATAGRAM_MODE_STATUS",
-        "DATAGRAM_MODE_EXECUTE"
+        "DATAGRAM_MODE_STATUS_REQUEST",
+        "DATAGRAM_MODE_EXECUTE_REQUEST",
+        "DATAGRAM_MODE_STATUS_RESPONSE",
+        "DATAGRAM_MODE_EXECUTE_RESPONSE"
     };
     static const char* datagram_type_strings[] = {
         "DATAGRAM_TYPE_NONE",
