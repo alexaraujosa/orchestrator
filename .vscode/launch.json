@@ -48,7 +48,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/${input:binFileTest}",
-            "args": [],
+            "args": ["-d"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

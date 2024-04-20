@@ -1,6 +1,6 @@
 # Compiler and flags
 CC := gcc
-CFLAGS := -Wall -Wextra -ggdb3 -std=c11 -fms-extensions
+CFLAGS := -Wall -Wextra -Wno-unknown-pragmas -ggdb3 -std=c11 -fms-extensions
 LDFLAGS := 
 LDLIBS := 
 
@@ -23,9 +23,18 @@ CLIENT_OBJS := $(CLIENT_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 COMMON_OBJS := $(COMMON_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 TEST_OBJS   := $(TEST_SRCS:$(TESTDIR)/%.c=$(OBJDIR)/$(TESTDIR)/%.o)
 
-SERVER_DEPS := $(SERVER_OBJS:.o=.d)
-CLIENT_DEPS := $(CLIENT_OBJS:.o=.d)
-COMMON_DEPS := $(CLIENT_OBJS:.o=.d)
+# SERVER_DEPS := $(SERVER_OBJS:.o=.d)
+# CLIENT_DEPS := $(CLIENT_OBJS:.o=.d)
+# COMMON_DEPS := $(CLIENT_OBJS:.o=.d)
+SERVER_INCS := $(shell find $(INCDIR)/server -name '*.h')
+CLIENT_INCS := $(shell find $(INCDIR)/client -name '*.h')
+COMMON_INCS := $(shell find $(INCDIR)/common -name '*.h')
+TEST_INCS   := $(shell find $(INCDIR)/test -name '*.h')
+
+SERVER_DEPS := $(SERVER_INCS:%.h=%.d)
+CLIENT_DEPS := $(CLIENT_INCS:%.h=%.d)
+COMMON_DEPS := $(COMMON_INCS:%.h=%.d)
+TEST_DEPS   := $(TEST_INCS:%.h=%.d)
 
 INC := -I$(INCDIR)
 
@@ -63,6 +72,7 @@ $(TEST_EXEC): $(COMMON_OBJS) $(TEST_OBJS)
 -include $(SERVER_DEPS)
 -include $(CLIENT_DEPS)
 -include $(COMMON_DEPS)
+# -include $(TEST_DEPS)
 
 # Rule to compile source files and generate dependency files for server
 $(OBJDIR)/server/%.o: $(SRCDIR)/server/%.c

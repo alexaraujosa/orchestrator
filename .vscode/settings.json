@@ -12,7 +12,9 @@
         "status.h": "c",
         "fcntl.h": "c",
         "execute.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "cstdlib": "c",
+        "signal.h": "c"
     },
     "cmake.configureOnOpen": false,
     "todo-tree.highlights.useColourScheme": true,
