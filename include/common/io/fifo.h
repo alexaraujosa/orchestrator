@@ -16,4 +16,13 @@
 */
 #define TASK "task_"
 
+#define SAFE_FIFO_SETUP(name, mode) ({\
+    unlink(name);\
+    int status = mkfifo(name, mode);\
+    if (status == -1) {\
+        perror("Unable to create fifo");\
+    }\
+    (status);\
+})
+
 #endif
