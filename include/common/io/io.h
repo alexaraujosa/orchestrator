@@ -50,7 +50,7 @@
  */
 #define SAFE_READ(fd, buf, nbytes) {\
     int rd = read(fd, buf, nbytes);\
-    if (rd == -1 || rd == 0) {\
+    if (rd == -1) {\
         perror("Unable to read file");\
         return ERR;\
     }\
@@ -127,11 +127,7 @@
     int id = 0;\
     ssize_t r = read(fd, &id, sizeof(int));\
     if(r == 0) {\
-        ssize_t w = write(fd, &id, sizeof(int));\
-        if(w == 0) {\
-            perror("ERROR! Exception occurred while writing to id file.\n");\
-            exit(EXIT_FAILURE);\
-        }\
+        SAFE_WRITE(fd, &id, sizeof(int));\
     }\
     id;\
 })

@@ -88,7 +88,7 @@ int main(int argc, char const *argv[]) {
 
         if(!strcmp("status", mode)) {
 
-            char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", getpid());
+            char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", getpid()); //TODO: FIFO DO CLIENTE PASSAR PARA A PASTA BUILD
             SAFE_FIFO_SETUP(client_fifo_name, 0600);
 
             int server_fifo_fd = SAFE_OPEN(SERVER_FIFO, O_WRONLY, 0600);
@@ -96,9 +96,9 @@ int main(int argc, char const *argv[]) {
             int w = write(server_fifo_fd, request, sizeof(STATUS_REQUEST_DATAGRAM));    //TODO: PASS TO SAFE_WRITE
 
             int client_fifo_fd = SAFE_OPEN(client_fifo_name, O_RDONLY, 0600);
-            StatusResponseDatagram response = read_status_response_datagram(client_fifo_fd);    //BUG: ERROR READING
+            StatusResponseDatagram response = read_status_response_datagram(client_fifo_fd);
 
-            printf("[DEBUG] Payload length: %d", response->payload_len);
+            printf("[DEBUG] Payload length: %d\n", response->payload_len);  //TODO: CLEANUP THIS
 
             close(client_fifo_fd);
             unlink(client_fifo_name);

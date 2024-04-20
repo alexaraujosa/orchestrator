@@ -9,6 +9,7 @@
 #include "common/util/string.h"
 
 int main(int argc, char const *argv[]) {
+    #define ERR 1
     printf("Hello world from server!\n");
 
     if(argc < 3) {
@@ -16,23 +17,27 @@ int main(int argc, char const *argv[]) {
         exit(EXIT_FAILURE);
     } else if(argc == 3) {
         // ...
-    } else {
+    } else if(argc == 4) {
         char* output_folder = (char*) argv[1];
-        CREATE_DIR(output_folder, 0777);
+        CREATE_DIR(output_folder, 0700);
 
         char* id_file_path = join_paths(2, output_folder, "id");
         int id_fd = SAFE_OPEN(id_file_path, O_RDWR | O_CREAT, 0600);
 
         char* history_file_path = join_paths(2, output_folder, "history.log");
-        int history_fd = SAFE_OPEN(history_file_path, O_APPEND | O_CREAT, 0600);
+        int history_fd = SAFE_OPEN(history_file_path, O_APPEND | O_CREAT, 0600);    //TODO: Depois para ler quando se pede um status, o O_APPEND n deixa
 
         SAFE_FIFO_SETUP(SERVER_FIFO, 0600); // TODO: QUANDO TERMINAR O SERVIDOR, DAR UNLINK AO SERVER_FIFO
-
+        //TODO: COLOCAR TUDO NA BUILD QUE SEJA TEMPORARIO
         int id = SETUP_ID(id_fd);
 
         while(1) {
             int server_fifo_fd = SAFE_OPEN(SERVER_FIFO, O_RDONLY, 0600);
-            DATAGRAM_HEADER header = read_datagram_header(server_fifo_fd); // BUG: Why file exists error?
+            DATAGRAM_HEADER header = read_datagram_header(server_fifo_fd);
+            if(header.version != DATAGRAM_VERSION) {
+                close(server_fifo_fd);
+                continue;
+            }
 
             char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", header.pid);
             int client_fifo_fd = SAFE_OPEN(client_fifo_name, O_WRONLY, 0600);
@@ -80,7 +85,7 @@ int main(int argc, char const *argv[]) {
         free(history_file_path);
     }
 
-    // TODO: Implement using new datagrams
+    #undef ERR
 }
 
 // int main(int argc, char const *argv[]) {
