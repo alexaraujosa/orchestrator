@@ -71,18 +71,57 @@
 //     return 0;
 // }
 
-
+#include <common/io/io.h>
+#include <common/io/fifo.h>
+#include <common/datagram/datagram.h>
+#include <common/datagram/execute.h>
+#include <common/datagram/status.h>
+#include "common/util/string.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char const *argv[]) {
     printf("Hello world from client!\n");
 
-    if(argc < 2) {
-        printf("Insufficient arguments. Try again later.\n");
-        exit(EXIT_FAILURE);
+    if(argc == 2) {
+        char* mode = (char*) argv[1];
+
+        if(!strcmp("status", mode)) {
+
+            char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", getpid());
+            SAFE_FIFO_SETUP(client_fifo_name, 0600);
+
+            int server_fifo_fd = SAFE_OPEN(SERVER_FIFO, O_WRONLY, 0600);
+            StatusRequestDatagram request = create_status_request_datagram();
+            int w = write(server_fifo_fd, request, sizeof(STATUS_REQUEST_DATAGRAM));    //TODO: PASS TO SAFE_WRITE
+
+            int client_fifo_fd = SAFE_OPEN(client_fifo_name, O_RDONLY, 0600);
+            StatusResponseDatagram response = read_status_response_datagram(client_fifo_fd);    //BUG: ERROR READING
+
+            printf("[DEBUG] Payload length: %d", response->payload_len);
+
+            close(client_fifo_fd);
+            unlink(client_fifo_name);
+            free(client_fifo_name);
+            close(server_fifo_fd);
+            
+        } else {
+            printf("Invalid mode. Try again later.\n");
+            exit(EXIT_FAILURE);
+        }
+    } else if(argc == 4) {
+        char* mode = (char*) argv[1];
+
+        if(!strcmp("execute", mode)) {
+
+            // ..
+
+        } else {
+            printf("Invalid mode. Try again later.\n");
+        }
     } else {
-        // ...
+        printf("Invalid number of arguments. Try again later.\n");
+        exit(EXIT_FAILURE);
     }
 
     return 0;

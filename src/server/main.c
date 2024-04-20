@@ -3,9 +3,82 @@
 #include <sys/types.h>
 #include "common/io/io.h"
 #include "common/io/fifo.h"
+#include "common/datagram/datagram.h"
+#include "common/datagram/execute.h"
+#include "common/datagram/status.h"
+#include "common/util/string.h"
 
 int main(int argc, char const *argv[]) {
     printf("Hello world from server!\n");
+
+    if(argc < 3) {
+        printf("Insufficient arguments. Try again later.\n");
+        exit(EXIT_FAILURE);
+    } else if(argc == 3) {
+        // ...
+    } else {
+        char* output_folder = (char*) argv[1];
+        CREATE_DIR(output_folder, 0777);
+
+        char* id_file_path = join_paths(2, output_folder, "id");
+        int id_fd = SAFE_OPEN(id_file_path, O_RDWR | O_CREAT, 0600);
+
+        char* history_file_path = join_paths(2, output_folder, "history.log");
+        int history_fd = SAFE_OPEN(history_file_path, O_APPEND | O_CREAT, 0600);
+
+        SAFE_FIFO_SETUP(SERVER_FIFO, 0600); // TODO: QUANDO TERMINAR O SERVIDOR, DAR UNLINK AO SERVER_FIFO
+
+        int id = SETUP_ID(id_fd);
+
+        while(1) {
+            int server_fifo_fd = SAFE_OPEN(SERVER_FIFO, O_RDONLY, 0600);
+            DATAGRAM_HEADER header = read_datagram_header(server_fifo_fd); // BUG: Why file exists error?
+
+            char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", header.pid);
+            int client_fifo_fd = SAFE_OPEN(client_fifo_name, O_WRONLY, 0600);
+
+            if(header.mode == DATAGRAM_MODE_EXECUTE_REQUEST) {
+                printf("[DEBUG] Execute started.\n");
+
+                ExecuteResponseDatagram response = create_execute_response_datagram();
+                response->taskid = ++id;
+                write(client_fifo_fd, response, sizeof(EXECUTE_RESPONSE_DATAGRAM));    //TODO: PASS TO SAFE_WRITE
+
+                char* task_name = isnprintf(TASK "%d", id);
+                char* task_path = join_paths(2, output_folder, task_name);
+                int task_fd = SAFE_OPEN(task_path, O_WRONLY | O_CREAT, 0600);
+
+                // ..
+
+                close(task_fd);
+                free(task_path);
+                free(task_name);
+
+                printf("[DEBUG] Execute ended.\n");
+            } else if(header.mode == DATAGRAM_MODE_STATUS_REQUEST) {
+                printf("[DEBUG] Status started.\n");
+
+                // ..
+
+                uint8_t status_res_payload[] = "Hello world!";
+                StatusResponseDatagram response = create_status_response_datagram(status_res_payload, 13);
+                write(client_fifo_fd, response, sizeof(STATUS_RESPONSE_DATAGRAM));
+
+                printf("[DEBUG] Status ended.\n");
+            }
+
+            close(client_fifo_fd);
+            free(client_fifo_name);
+            close(server_fifo_fd);
+        }
+
+
+        close(id_fd);
+        close(history_fd);
+
+        free(id_file_path);
+        free(history_file_path);
+    }
 
     // TODO: Implement using new datagrams
 }
