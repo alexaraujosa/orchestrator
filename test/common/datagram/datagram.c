@@ -65,7 +65,7 @@ void test_status_request_datagram(StatusRequestDatagram dg) {
     free(status_str_nee);
     return;
 
-    DEFAULT_ERROR_LABEL
+    TEST_ERROR_LABEL
 }
 
 void test_execute_request_datagram(ExecuteRequestDatagram dg) {
@@ -114,7 +114,7 @@ void test_execute_request_datagram(ExecuteRequestDatagram dg) {
     free(execute_str_ee_sp);
 
     return;
-    DEFAULT_ERROR_LABEL
+    TEST_ERROR_LABEL
 }
 
 void test_status_response_datagram(StatusResponseDatagram dg) {
@@ -163,7 +163,7 @@ void test_status_response_datagram(StatusResponseDatagram dg) {
     free(status_str_ee_sp);
 
     return;
-    DEFAULT_ERROR_LABEL
+    TEST_ERROR_LABEL
 }
 
 void test_execute_response_datagram(ExecuteResponseDatagram dg) {
@@ -192,7 +192,7 @@ void test_execute_response_datagram(ExecuteResponseDatagram dg) {
     free(execute_str_nee);
 
     return;
-    DEFAULT_ERROR_LABEL
+    TEST_ERROR_LABEL
 }
 
 
@@ -200,7 +200,7 @@ void test_execute_response_datagram(ExecuteResponseDatagram dg) {
 //     ERROR_HEADER
 // 
 //     return;
-//     DEFAULT_ERROR_LABEL
+//     TEST_ERROR_LABEL
 // }
 
 void test_datagram(char* test_data_dir) {
@@ -392,5 +392,5 @@ void test_datagram(char* test_data_dir) {
     #pragma endregion
     return;
 
-    DEFAULT_ERROR_LABEL
+    TEST_ERROR_LABEL
 }
