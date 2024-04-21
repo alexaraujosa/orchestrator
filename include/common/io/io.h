@@ -10,6 +10,7 @@
 #include <linux/limits.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include "common/debug.h"
 
 /**
  * @brief Attempts to open a file, and prints a message if an error occured.
@@ -20,7 +21,7 @@
 #define SAFE_OPEN(fn, flags, mode) ({\
     int fd = open(fn, flags, mode);\
     if (fd == -1) {\
-        perror("Unable to open file");\
+        perror(ERROR_STR_HEADER "Unable to open file");\
     }\
     (fd);\
 })
@@ -35,7 +36,7 @@
  */
 #define SAFE_SEEK(fd, off, whence) {\
     if (lseek(fd, off, whence) == -1) {\
-        perror("Unable to seek file position");\
+        perror(ERROR_STR_HEADER "Unable to seek file position");\
         return ERR;\
     }\
 }
@@ -48,13 +49,14 @@
  * 
  * @warning The return code in case of an error requires the define `ERR` to be defined.
  */
-#define SAFE_READ(fd, buf, nbytes) {\
+#define SAFE_READ(fd, buf, nbytes) ({\
     int rd = read(fd, buf, nbytes);\
     if (rd == -1) {\
-        perror("Unable to read file");\
+        perror(ERROR_STR_HEADER "Unable to read file");\
         return ERR;\
     }\
-}
+    (rd);\
+})
 
 
 /**
@@ -67,7 +69,7 @@
  */
 #define SAFE_WRITE(fd, buf, n) {\
     if (write(fd, buf, n) == -1) {\
-        perror("Unable to write file");\
+        perror(ERROR_STR_HEADER "Unable to write file");\
         return ERR;\
     }\
 }
@@ -83,7 +85,7 @@
  */
 #define SAFE_PWRITE(fd, buf, n, off) {\
     if (pwrite(fd, buf, n, off) == -1) {\
-        perror("Unable to write file");\
+        perror(ERROR_STR_HEADER "Unable to write file");\
         return ERR;\
     }\
 }
@@ -117,7 +119,7 @@
 #define CREATE_SECURE_DIR(dirname, mode) ({\
     int status = mkdir(dirname, mode);\
     if (status) {\
-        perror("ERROR! Exception occurred while creating file.\n");\
+        perror(ERROR_STR_HEADER "Exception occurred while creating file.\n");\
         exit(EXIT_FAILURE);\
     }\
     status;\
@@ -127,7 +129,12 @@
     int id = 0;\
     ssize_t r = read(fd, &id, sizeof(int));\
     if(r == 0) {\
-        SAFE_WRITE(fd, &id, sizeof(int));\
+        ssize_t w = write(fd, &id, sizeof(int));\
+        if(w == 0) {\
+            perror(ERROR_STR_HEADER "Exception occurred while writing to id file.\n");\
+            exit(EXIT_FAILURE);\
+        }\
+        /* SAFE_WRITE(fd, &id, sizeof(int));*/\
     }\
     id;\
 })
@@ -150,6 +157,11 @@ char* join_paths(int len, ...);
  * @return The CWD of the program.
  */
 char* get_cwd();
+
+/**
+ * @brief Drains an entire FIFO.
+ */
+void drain_fifo(int fd);
 
 
 #endif

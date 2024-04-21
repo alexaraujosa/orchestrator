@@ -1,6 +1,9 @@
 #ifndef COMMON_UTIL_STRING_H
 #define COMMON_UTIL_STRING_H
 
+#define ESCAPE_STR(x) #x
+#define STR(x) ESCAPE_STR(x)
+
 /**
  * @brief Checks whether two strings are equal.
  * 

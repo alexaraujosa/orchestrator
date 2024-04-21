@@ -17,7 +17,7 @@ DATAGRAM_HEADER read_datagram_header(int fd) {
     #define ERR ((DATAGRAM_HEADER){ 0 })
     
     DATAGRAM_HEADER header = { 0 };
-    SAFE_READ(fd, &header, sizeof(DATAGRAM_HEADER));
+    int rb = SAFE_READ(fd, &header, sizeof(DATAGRAM_HEADER));
 
     return header;
 }

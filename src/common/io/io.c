@@ -43,3 +43,12 @@ char* join_paths(int len, ...) {
 
     return fullPath;
 }
+
+void drain_fifo(int fd) {
+    char buffer[256];
+    ssize_t bytes_read;
+
+    do {
+        bytes_read = read(fd, buffer, sizeof(buffer));
+    } while (bytes_read > 0);
+}

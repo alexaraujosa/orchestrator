@@ -97,6 +97,13 @@ int main(int argc, char const *argv[]) {
             int server_fifo_fd = SAFE_OPEN(server_fifo_path, O_WRONLY, 0600);
 
             StatusRequestDatagram request = create_status_request_datagram();
+            
+            #ifdef DEBUG
+            char* req_str = status_request_datagram_to_string(request, 1);
+            DEBUG_PRINT("[DEBUG] Sending request with %d bytes:\n%s\n", sizeof(STATUS_REQUEST_DATAGRAM), req_str);
+            free(req_str);
+            #endif
+            
             SAFE_WRITE(server_fifo_fd, request, sizeof(STATUS_REQUEST_DATAGRAM));
 
             int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_RDONLY, 0600);
