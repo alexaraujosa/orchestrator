@@ -23,9 +23,6 @@ CLIENT_OBJS := $(CLIENT_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 COMMON_OBJS := $(COMMON_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 TEST_OBJS   := $(TEST_SRCS:$(TESTDIR)/%.c=$(OBJDIR)/$(TESTDIR)/%.o)
 
-# SERVER_DEPS := $(SERVER_OBJS:.o=.d)
-# CLIENT_DEPS := $(CLIENT_OBJS:.o=.d)
-# COMMON_DEPS := $(CLIENT_OBJS:.o=.d)
 SERVER_INCS := $(shell find $(INCDIR)/server -name '*.h')
 CLIENT_INCS := $(shell find $(INCDIR)/client -name '*.h')
 COMMON_INCS := $(shell find $(INCDIR)/common -name '*.h')
@@ -72,7 +69,7 @@ $(TEST_EXEC): $(COMMON_OBJS) $(TEST_OBJS)
 -include $(SERVER_DEPS)
 -include $(CLIENT_DEPS)
 -include $(COMMON_DEPS)
-# -include $(TEST_DEPS)
+-include $(TEST_DEPS)
 
 # Rule to compile source files and generate dependency files for server
 $(OBJDIR)/server/%.o: $(SRCDIR)/server/%.c
