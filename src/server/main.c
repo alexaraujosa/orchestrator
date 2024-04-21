@@ -1,6 +1,10 @@
+#define _POSIX_C_SOURCE 199309L
+#define _CRITICAL
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <signal.h>
 #include "common/io/io.h"
 #include "common/io/fifo.h"
 #include "common/datagram/datagram.h"
@@ -8,9 +12,47 @@
 #include "common/datagram/status.h"
 #include "common/util/string.h"
 
+volatile sig_atomic_t shutdown_requested = 0;
+
+void signal_handler_shutdown(int sig) {
+    if (sig == SIGINT || sig == SIGTERM) {
+        shutdown_requested = 1;
+    }
+}
+
 int main(int argc, char const *argv[]) {
     #define ERR 1
     printf("Hello world from server!\n");
+
+    // // Attach signal handlers
+    // signal(SIGINT, signal_handler_shutdown);
+    // signal(SIGTERM, signal_handler_shutdown);
+
+    // // Prepare signal mask
+    // sigset_t signal_set;
+    // sigemptyset(&signal_set);
+    // sigaddset(&signal_set, SIGINT);
+    // sigaddset(&signal_set, SIGTERM);
+
+    struct sigaction critical_sa_apply;
+    struct sigaction critical_sa_restore;
+
+    memset(&critical_sa_apply, 0, sizeof(critical_sa_apply));
+    sigemptyset(&critical_sa_apply.sa_mask);
+    critical_sa_apply.sa_handler = signal_handler_shutdown;
+    critical_sa_apply.sa_flags = 0;
+
+    // #define CRITICAL_START sigprocmask(SIG_BLOCK, &signal_set, NULL);
+    // #define CRITICAL_END sigprocmask(SIG_UNBLOCK, &signal_set, NULL);
+
+    INIT_CRITICAL_MARK
+
+    #define CRITICAL_START SET_CRITICAL_MARK(0);\
+        sigaction(SIGINT, &critical_sa_apply, &critical_sa_restore);\
+        sigaction(SIGTERM, &critical_sa_apply, &critical_sa_restore);
+    #define CRITICAL_END SET_CRITICAL_MARK(0);\
+        sigaction(SIGINT, &critical_sa_restore, NULL);\
+        sigaction(SIGTERM, &critical_sa_restore, NULL);
 
     if(argc < 3) {
         printf("Insufficient arguments. Try again later.\n");
@@ -21,21 +63,30 @@ int main(int argc, char const *argv[]) {
         char* output_folder = (char*) argv[1];
         CREATE_DIR(output_folder, 0700);
 
-        char* id_file_path = join_paths(2, output_folder, "id");
-        int id_fd = SAFE_OPEN(id_file_path, O_RDWR | O_CREAT, 0600);
+        CRITICAL_START
+            char* id_file_path = join_paths(2, output_folder, "id");
+            int id_fd = SAFE_OPEN(id_file_path, O_RDWR | O_CREAT, 0600);
 
-        char* history_file_path = join_paths(2, output_folder, "history.log");
-        int history_fd = SAFE_OPEN(history_file_path, O_APPEND | O_CREAT, 0600);    //TODO: Depois para ler quando se pede um status, o O_APPEND n deixa
+            char* history_file_path = join_paths(2, output_folder, "history.log");
+            int history_fd = SAFE_OPEN(history_file_path, O_APPEND | O_CREAT, 0600);    //TODO: Depois para ler quando se pede um status, o O_APPEND n deixa
 
-        char* server_fifo_path = join_paths(2, "build/", SERVER_FIFO);
-        SAFE_FIFO_SETUP(server_fifo_path, 0600);
+            char* server_fifo_path = join_paths(2, "build/", SERVER_FIFO);
+            SAFE_FIFO_SETUP(server_fifo_path, 0600);
 
-        int id = SETUP_ID(id_fd);
+            int id = SETUP_ID(id_fd);
+        CRITICAL_END
 
-        while(1) {
+        while(!shutdown_requested) {
             DEBUG_PRINT("[DEBUG] New cycle.\n");
-            int server_fifo_fd = SAFE_OPEN(server_fifo_path, O_RDONLY, 0600);
-            
+
+            // Read incoming requests.
+            CRITICAL_START
+                int server_fifo_fd = SAFE_OPEN(server_fifo_path, O_RDONLY, 0600);
+            CRITICAL_END
+
+            // If kill signal recieved, do not read or process requests
+            if (shutdown_requested) break;
+
             DATAGRAM_HEADER header = read_datagram_header(server_fifo_fd);
             if (header.version == 0) {
                 // Read 0 bytes, fallback to 0.
@@ -59,7 +110,7 @@ int main(int argc, char const *argv[]) {
             int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_WRONLY, 0600);
 
             if(header.mode == DATAGRAM_MODE_EXECUTE_REQUEST) {
-                printf("[DEBUG] Execute started.\n");
+                printf("Recieved Execute Request.\n");
 
                 ExecuteResponseDatagram response = create_execute_response_datagram();
                 response->taskid = ++id;
@@ -80,9 +131,9 @@ int main(int argc, char const *argv[]) {
                 free(task_path);
                 free(task_name);
 
-                printf("[DEBUG] Execute ended.\n");
+                printf("Execute Request finalized.\n");
             } else if(header.mode == DATAGRAM_MODE_STATUS_REQUEST) {
-                // printf("[DEBUG] Status started.\n");
+                printf("Recieved Status Request.\n");
 
                 // TODO: Create status response payload
 
@@ -90,39 +141,74 @@ int main(int argc, char const *argv[]) {
                 // StatusResponseDatagram response = create_status_response_datagram(status_res_payload, 13);
                 // write(client_fifo_fd, response, sizeof(STATUS_RESPONSE_DATAGRAM));
 
-                printf("[DEBUG] Status ended.\n");
+                printf("Status Request finalized.\n");
             } else if(header.mode == DATAGRAM_MODE_CLOSE_REQUEST) {
-                printf("[DEBUG] Close started.\n");
+                printf("Recieved Close request.\n");
 
-                DATAGRAM_HEADER response = create_datagram_header();
-                response.mode = DATAGRAM_MODE_CLOSE_RESPONSE;
-                SAFE_WRITE(client_fifo_fd, &response, sizeof(DATAGRAM_HEADER));
+                CRITICAL_START
+                    DATAGRAM_HEADER response = create_datagram_header();
+                    response.mode = DATAGRAM_MODE_CLOSE_RESPONSE;
+                    SAFE_WRITE(client_fifo_fd, &response, sizeof(DATAGRAM_HEADER));
+                CRITICAL_END
 
-                printf("Server shutting down...\n");
+                // Request shutdown and fallthrough.
+                shutdown_requested = 1;
 
-                lseek(id_fd, 0, SEEK_SET);
-                SAFE_WRITE(id_fd, &id, sizeof(int));
-                close(id_fd);
-                close(history_fd);
-                close(client_fifo_fd);
-                close(server_fifo_fd);
-                free(id_file_path);
-                free(history_file_path);
-                free(client_fifo_path);
-                free(client_fifo_name);
-                unlink(server_fifo_path);
-                free(server_fifo_path);
+                // printf("Server shutting down...\n");
 
-                printf("[DEBUG] Close ended.\n");
-                exit(EXIT_SUCCESS);
+                // // Save current ID
+                // lseek(id_fd, 0, SEEK_SET);
+                // SAFE_WRITE(id_fd, &id, sizeof(int));
+
+                // // Close file descriptors
+                // close(id_fd);
+                // close(history_fd);
+                // close(client_fifo_fd);
+                // close(server_fifo_fd);
+
+                // // Delete server fifo
+                // unlink(server_fifo_path);
+
+                // // Free allocated strings
+                // free(id_file_path);
+                // free(history_file_path);
+                // free(client_fifo_path);
+                // free(client_fifo_name);
+                // free(server_fifo_path);
+
+                // printf("Successfully closed server.\n");
+                // exit(EXIT_SUCCESS);
             }
 
             close(client_fifo_fd);
+            close(server_fifo_fd);
             free(client_fifo_path);
             free(client_fifo_name);
-            close(server_fifo_fd);
         }
 
+        // Handle server shutdown
+        {
+            printf("Server shutting down...\n");
+
+            // Save current ID
+            lseek(id_fd, 0, SEEK_SET);
+            SAFE_WRITE(id_fd, &id, sizeof(int));
+
+            // Close file descriptors
+            close(id_fd);
+            close(history_fd);
+
+            // Delete server fifo
+            unlink(server_fifo_path);
+
+            // Free allocated strings
+            free(id_file_path);
+            free(history_file_path);
+            free(server_fifo_path);
+
+            printf("Successfully closed server.\n");
+            exit(EXIT_SUCCESS);
+        }
     }
 
     #undef ERR
