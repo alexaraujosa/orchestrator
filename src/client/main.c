@@ -81,6 +81,7 @@
 #include <stdlib.h>
 
 int main(int argc, char const *argv[]) {
+    #define ERR 1
     printf("Hello world from client!\n");
 
     if(argc == 2) {
@@ -88,33 +89,96 @@ int main(int argc, char const *argv[]) {
 
         if(!strcmp("status", mode)) {
 
-            char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", getpid()); //TODO: FIFO DO CLIENTE PASSAR PARA A PASTA BUILD
-            SAFE_FIFO_SETUP(client_fifo_name, 0600);
+            char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", getpid());
+            char* client_fifo_path = join_paths(2, "build/", client_fifo_name);
+            SAFE_FIFO_SETUP(client_fifo_path, 0600);
 
-            int server_fifo_fd = SAFE_OPEN(SERVER_FIFO, O_WRONLY, 0600);
+            char* server_fifo_path = join_paths(2, "build/", SERVER_FIFO);
+            int server_fifo_fd = SAFE_OPEN(server_fifo_path, O_WRONLY, 0600);
+
             StatusRequestDatagram request = create_status_request_datagram();
-            int w = write(server_fifo_fd, request, sizeof(STATUS_REQUEST_DATAGRAM));    //TODO: PASS TO SAFE_WRITE
+            SAFE_WRITE(server_fifo_fd, request, sizeof(STATUS_REQUEST_DATAGRAM));
 
-            int client_fifo_fd = SAFE_OPEN(client_fifo_name, O_RDONLY, 0600);
+            int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_RDONLY, 0600);
             StatusResponseDatagram response = read_status_response_datagram(client_fifo_fd);
 
-            printf("[DEBUG] Payload length: %d\n", response->payload_len);  //TODO: CLEANUP THIS
+            // TODO: Print response datagram payload.
 
             close(client_fifo_fd);
-            unlink(client_fifo_name);
+            unlink(client_fifo_path);
+            free(client_fifo_path);
             free(client_fifo_name);
             close(server_fifo_fd);
+            free(server_fifo_path);
             
+        } else if(!strcmp("close", mode)) {
+            
+            char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", getpid());
+            char* client_fifo_path = join_paths(2, "build/", client_fifo_name);
+            SAFE_FIFO_SETUP(client_fifo_path, 0600);
+
+            char* server_fifo_path = join_paths(2, "build/", SERVER_FIFO);
+            int server_fifo_fd = SAFE_OPEN(server_fifo_path, O_WRONLY, 0600);
+
+            DATAGRAM_HEADER request = create_datagram_header();
+            request.mode = DATAGRAM_MODE_CLOSE_REQUEST;
+            SAFE_WRITE(server_fifo_fd, &request, sizeof(DATAGRAM_HEADER));
+
+            int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_RDONLY, 0600);
+            DATAGRAM_HEADER response = read_datagram_header(client_fifo_fd);
+
+            if(response.mode == DATAGRAM_MODE_CLOSE_RESPONSE) {
+                printf("Server shutdown request sucessfully sent.\n");
+            } else {
+                printf("Server shutdown request was not received.\n");
+            }
+
+            close(client_fifo_fd);
+            unlink(client_fifo_path);
+            free(client_fifo_path);
+            free(client_fifo_name);
+            close(server_fifo_fd);
+            free(server_fifo_path);
+
         } else {
             printf("Invalid mode. Try again later.\n");
             exit(EXIT_FAILURE);
         }
-    } else if(argc == 4) {
+    } else if(argc == 5) {
         char* mode = (char*) argv[1];
 
         if(!strcmp("execute", mode)) {
 
-            // ..
+            char* type = (char*) argv[3];
+            char* data = (char*) argv[4];
+            if(strlen(data) > 300) {
+                perror("ERROR! Arguments passed to execute mode exceeds 300 bytes.\n");
+                exit(EXIT_FAILURE);
+            }
+
+            char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", getpid());
+            char* client_fifo_path = join_paths(2, "build/", client_fifo_name);
+            SAFE_FIFO_SETUP(client_fifo_path, 0600);
+
+            char* server_fifo_path = join_paths(2, "build/", SERVER_FIFO);
+            int server_fifo_fd = SAFE_OPEN(server_fifo_path, O_WRONLY, 0600);
+
+            ExecuteRequestDatagram request = create_execute_request_datagram();
+            request->header.type = (!strcmp("-u", type)) ? DATAGRAM_TYPE_UNIQUE : DATAGRAM_TYPE_PIPELINE;
+            memcpy(request->data, data, strlen(data));
+            SAFE_WRITE(server_fifo_fd, request, sizeof(EXECUTE_REQUEST_DATAGRAM));
+
+            int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_RDONLY, 0600);
+            ExecuteResponseDatagram response = read_execute_response_datagram(client_fifo_fd);
+
+            printf("Task queued with identifier %d.\n", response->taskid);
+
+            close(client_fifo_fd);
+            unlink(client_fifo_path);
+            free(client_fifo_path);
+            free(client_fifo_name);
+            close(server_fifo_fd);
+            free(server_fifo_path);
 
         } else {
             printf("Invalid mode. Try again later.\n");
@@ -124,6 +188,7 @@ int main(int argc, char const *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    #undef ERR
     return 0;
 }
 
