@@ -1,6 +1,6 @@
 # Compiler and flags
 CC := gcc
-CFLAGS := -Wall -Wextra -Wno-unknown-pragmas -ggdb3 -std=c11 -fms-extensions
+CFLAGS := -Wall -Wextra -Wno-unknown-pragmas -ggdb3 -std=c11 -fms-extensions `pkg-config --cflags glib-2.0`
 LDFLAGS := 
 LDLIBS := 
 
