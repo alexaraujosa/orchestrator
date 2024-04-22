@@ -1,3 +1,18 @@
+/******************************************************************************
+ *                               ERROR UTILITY                                *
+ *                                                                            *
+ *   The Error Utility module contains multiple macros and definitions for    *
+ * error-related purposed, such as assertions, error handling and stadardised *
+ * error messages.                                                            *
+ *                                                                            *
+ * Within this module is also defined the Critical Mark macro system, that    *
+ * allows the creation of a special variable that marks a critical part of    *
+ * the execution flow, which allows for the modification of the behavior of   *
+ * a code snippet depending on the current state of the Critical Mark.        *
+ *   To enable the Critical Mark system on a given file, define _CRITICAL at  *
+ * the top of the file, before any imports.                                   *
+ ******************************************************************************/
+
 #ifndef COMMON_ERROR_H
 #define COMMON_ERROR_H
 

@@ -1,3 +1,14 @@
+/******************************************************************************
+ *                              SERVER PROCESS                                *
+ *                                                                            *
+ *   The server process is the main entry point for any connecting client.    *
+ *   It is responsible for listening for incomming requests, process them,    *
+ * pass the to the operator process, and respond to the connecting clients.   *
+ *   At startup, it should create all required files for execution and spawn  *
+ * all processes that are required.                                           *
+ *   Only one server process is supposed to exist per instance.               *
+ ******************************************************************************/
+
 #define _POSIX_C_SOURCE 199309L
 #define _CRITICAL
 

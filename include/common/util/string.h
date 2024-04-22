@@ -1,3 +1,10 @@
+/******************************************************************************
+ *                              STRING UTILITY                                *
+ *                                                                            *
+ *   The String Uility provides methods for comparison and manipulation of    *
+ * strings, used throughout the application.                                  *
+ ******************************************************************************/
+
 #ifndef COMMON_UTIL_STRING_H
 #define COMMON_UTIL_STRING_H
 

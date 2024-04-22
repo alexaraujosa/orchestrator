@@ -1,3 +1,10 @@
+/******************************************************************************
+ *                             IO FIFO UTILITY                                *
+ *                                                                            *
+ *   The IO FIFO Utility module contains unified names for FIFOs used         *
+ * throughout the application.                                                *
+ ******************************************************************************/
+
 #ifndef COMMON_IO_FIFO_H
 #define COMMON_IO_FIFO_H
 

@@ -1,3 +1,25 @@
+/******************************************************************************
+ *                           STATUS MODE DATAGRAMS                            *
+ *                                                                            *
+ *   The Status Mode Datagrams is the common name given to the Request and    *
+ * Response Datagrams for the Status Mode of the application architecture.    *
+ *   The Status Mode is the mode used to query the current state of a server  *
+ * instance, returning the queues, running and completed tasks.               *
+ *                                                                            *
+ *   The create_status_<kind>_datagram functions create a new empty datagram  *
+ * of the specified kind, initially valid for transmission, that allows, but  *
+ * discourages modfication of the data before being sent.                     *
+ *   The read_status_<kind>_datagram functions read a full datagram of the    *
+ * specificed kind. They are meant to be used only if it is known beforehand  *
+ * that there is a valid datagram present within a file descriptor.           *
+ *   The read_partial_status_<kind>_datagram read the payload of a datagram   *
+ * of the specified kind. They are meant to be used in conjunction with the   *
+ * read_datagram_header function to process the datagram header separatedly   *
+ * from the payload.                                                          *
+ *   The status_<kind>_datagram_to_string converts a datagram of the          *
+ * specified kind to a null-terminated, trimmed string.                       *
+ ******************************************************************************/
+
 #ifndef COMMON_DATAGRAM_STATUS_H
 #define COMMON_DATAGRAM_STATUS_H
 

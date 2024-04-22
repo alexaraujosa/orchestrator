@@ -1,3 +1,17 @@
+/******************************************************************************
+ *                                IO UTILITY                                  *
+ *                                                                            *
+ *   The IO Utility module contains various utilities for i/o operations made *
+ * throuhgout the application.                                                *
+ *                                                                            *
+ *   The SAFE macros provide error handling for common operations, such as    *
+ * open, read and write.                                                      *
+ *   Macros that make use of a CRITICAL_MARK are macros that are change their *
+ * behavior depending on whether a critical mark is active within the context *
+ * of their execution. See include/common/error.h for more information on     *
+ * Critical Marks.                                                            *
+ ******************************************************************************/
+
 #ifndef COMMON_IO_H
 #define COMMON_IO_H
 

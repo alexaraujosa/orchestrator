@@ -1,3 +1,12 @@
+/******************************************************************************
+ *                             DATAGRAM HEADERS                               *
+ *                                                                            *
+ *   The Datagram Headers are the head part of any datagram between a server  *
+ * instance and a client. It ensures consistency between sent and recieved    *
+ * packets and facilitates the packet processing, in addition to a simple but *
+ * useful structural integrety check using a versioning system.               *
+ ******************************************************************************/
+
 #include "common/datagram/datagram.h"
 #include "common/util/string.h"
 #include "common/io/io.h"

@@ -1,3 +1,25 @@
+/******************************************************************************
+ *                          EXECUTE MODE DATAGRAMS                            *
+ *                                                                            *
+ *   The Execute Mode Datagrams is the common name given to the Request and   *
+ * Response Datagrams for the Execute Mode of the application architecture.   *
+ *   The Execute Mode is the mode used to queue a new task on a server        *
+ * instance, and get the id of the queued task.                               *
+ *                                                                            *
+ *   The create_execute_<kind>_datagram functions create a new empty datagram *
+ * of the specified kind, initially valid for transmission, that allows, but  *
+ * discourages modfication of the data before being sent.                     *
+ *   The read_execute_<kind>_datagram functions read a full datagram of the   *
+ * specificed kind. They are meant to be used only if it is known beforehand  *
+ * that there is a valid datagram present within a file descriptor.           *
+ *   The read_partial_execute_<kind>_datagram read the payload of a datagram  *
+ * of the specified kind. They are meant to be used in conjunction with the   *
+ * read_datagram_header function to process the datagram header separatedly   *
+ * from the payload.                                                          *
+ *   The execute_<kind>_datagram_to_string converts a datagram of the         *
+ * specified kind to a null-terminated, trimmed string.                       *
+ ******************************************************************************/
+
 #ifndef COMMON_DATAGRAM_EXECUTE_H
 #define COMMON_DATAGRAM_EXECUTE_H
 

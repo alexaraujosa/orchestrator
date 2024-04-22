@@ -1,3 +1,10 @@
+/******************************************************************************
+ *                               DEBUG UTILITY                                *
+ *                                                                            *
+ *   The Ddebug Utility provides trace methods for debug purposed, not        *
+ * present on a release build.                                                *
+ ******************************************************************************/
+
 #ifndef COMMON_DEBUG_H
 #define COMMON_DEBUG_H
 

@@ -1,3 +1,10 @@
+/******************************************************************************
+ *                               ALLOC UTILITY                                *
+ *                                                                            *
+ *   The Alloc Utility provides SAFE versions of commonly used memory         *
+ * allocation functions, providing error handling.                            *
+ ******************************************************************************/
+
 #ifndef COMMON_UTIL_ALLOC_H
 #define COMMON_UTIL_ALLOC_H
 
