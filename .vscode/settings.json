@@ -6,6 +6,7 @@
         "compare": "c",
         "type_traits": "c",
         "cmath": "c",
+        "glib.h": "c",
         "limits": "c",
         "new": "c",
         "test.h": "c",
