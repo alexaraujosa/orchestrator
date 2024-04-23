@@ -26,9 +26,10 @@ DATAGRAM_HEADER read_datagram_header(int fd) {
     #define ERR ((DATAGRAM_HEADER){ 0 })
     
     DATAGRAM_HEADER header = { 0 };
-    int rb = SAFE_READ(fd, &header, sizeof(DATAGRAM_HEADER));
+    SAFE_READ(fd, &header, sizeof(DATAGRAM_HEADER));
 
     return header;
+    #undef ERR
 }
 
 char* datagram_header_to_string(DatagramHeader header, int expandEnums) {

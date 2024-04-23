@@ -35,6 +35,7 @@ StatusRequestDatagram create_status_request_datagram() {
     dg->header.mode = DATAGRAM_MODE_STATUS_REQUEST;
 
     return dg;
+    #undef ERR
 }
 
 StatusRequestDatagram read_status_request_datagram(int fd) {
@@ -44,6 +45,7 @@ StatusRequestDatagram read_status_request_datagram(int fd) {
     SAFE_READ(fd, status, sizeof(STATUS_REQUEST_DATAGRAM));
 
     return status;
+    #undef ERR
 }
 
 StatusRequestDatagram read_partial_status_request_datagram(int fd, DATAGRAM_HEADER header) {
@@ -55,6 +57,7 @@ StatusRequestDatagram read_partial_status_request_datagram(int fd, DATAGRAM_HEAD
     // SAFE_READ(fd, (((void*)status) + sizeof(DATAGRAM_HEADER)), sizeof(STATUS_REQUEST_DATAGRAM) - sizeof(DATAGRAM_HEADER));
 
     return status;
+    #undef ERR
 }
 
 char* status_request_datagram_to_string(StatusRequestDatagram dg, int expandEnums) {
@@ -92,6 +95,7 @@ StatusResponseDatagram create_status_response_datagram(uint8_t payload[], int pa
 
 
     return dg;
+    #undef ERR
 }
 
 StatusResponseDatagram read_status_response_datagram(int fd) {
@@ -110,6 +114,7 @@ StatusResponseDatagram read_status_response_datagram(int fd) {
     SAFE_READ(fd, (((void*)status) + size), status->payload_len);
 
     return status;
+    #undef ERR
 }
 
 StatusResponseDatagram read_partial_status_response_datagram(int fd, DATAGRAM_HEADER header) {
@@ -134,9 +139,12 @@ StatusResponseDatagram read_partial_status_response_datagram(int fd, DATAGRAM_HE
     SAFE_READ(fd, (((void*)status) + offset), status->payload_len);
 
     return status;
+    #undef ERR
 }
 
 char* status_response_datagram_to_string(StatusResponseDatagram dg, int expandEnums, int stringPayload) {
+    #define ERR NULL
+
     char* dh = datagram_header_to_string(&dg->header, expandEnums);
     // char* bytes = bytes_to_hex_string(dg->payload, dg->payload_len, ':');
     char* bytes;
@@ -158,5 +166,6 @@ char* status_response_datagram_to_string(StatusResponseDatagram dg, int expandEn
     free(dh);
 
     return str;
+    #undef ERR
 }
 #pragma endregion

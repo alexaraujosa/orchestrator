@@ -39,6 +39,7 @@ ExecuteRequestDatagram create_execute_request_datagram() {
     memset(dg->data, 0, 300);
 
     return dg;
+    #undef ERR
 }
 
 ExecuteRequestDatagram read_execute_request_datagram(int fd) {
@@ -48,6 +49,7 @@ ExecuteRequestDatagram read_execute_request_datagram(int fd) {
     SAFE_READ(fd, execute, sizeof(EXECUTE_REQUEST_DATAGRAM));
 
     return execute;
+    #undef ERR
 }
 
 ExecuteRequestDatagram read_partial_execute_request_datagram(int fd, DATAGRAM_HEADER header) {
@@ -59,6 +61,7 @@ ExecuteRequestDatagram read_partial_execute_request_datagram(int fd, DATAGRAM_HE
     SAFE_READ(fd, (((void*)execute) + sizeof(DATAGRAM_HEADER)), sizeof(EXECUTE_REQUEST_DATAGRAM) - sizeof(DATAGRAM_HEADER));
 
     return execute;
+    #undef ERR
 }
 
 //WARN: verificar o tempo aqui tb
@@ -68,7 +71,7 @@ char* execute_request_datagram_to_string(ExecuteRequestDatagram dg, int expandEn
     char* bytes = stringPayload ? dg->data : bytes_to_hex_string(dg->data, EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN, ':');
 
     char* str = isnprintf(
-        "ExecuteRequestDatagram{ header: %s, time: '%d',  data: '%s' }",
+        "ExecuteRequestDatagram{ header: %s, time: %d, data: '%s' }",
         dh,
         time,
         bytes
@@ -92,6 +95,7 @@ ExecuteResponseDatagram create_execute_response_datagram() {
     dg->taskid = 0;
 
     return dg;
+    #undef ERR
 }
 
 ExecuteResponseDatagram read_execute_response_datagram(int fd) {
@@ -101,6 +105,7 @@ ExecuteResponseDatagram read_execute_response_datagram(int fd) {
     SAFE_READ(fd, execute, sizeof(EXECUTE_RESPONSE_DATAGRAM));
 
     return execute;
+    #undef ERR
 }
 
 ExecuteResponseDatagram read_partial_execute_response_datagram(int fd, DATAGRAM_HEADER header) {
@@ -112,6 +117,7 @@ ExecuteResponseDatagram read_partial_execute_response_datagram(int fd, DATAGRAM_
     SAFE_READ(fd, (((void*)execute) + sizeof(DATAGRAM_HEADER)), sizeof(EXECUTE_RESPONSE_DATAGRAM) - sizeof(DATAGRAM_HEADER));
 
     return execute;
+    #undef ERR
 }
 
 char* execute_response_datagram_to_string(ExecuteResponseDatagram dg, int expandEnums) {

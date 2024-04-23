@@ -37,7 +37,7 @@ int main(int argc, char const *argv[]) {
             
             #ifdef DEBUG
             char* req_str = status_request_datagram_to_string(request, 1);
-            DEBUG_PRINT("[DEBUG] Sending request with %d bytes:\n%s\n", sizeof(STATUS_REQUEST_DATAGRAM), req_str);
+            DEBUG_PRINT("[DEBUG] Sending request with %ld bytes:\n%s\n", sizeof(STATUS_REQUEST_DATAGRAM), req_str);
             free(req_str);
             #endif
             
