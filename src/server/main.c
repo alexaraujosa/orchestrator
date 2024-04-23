@@ -33,7 +33,7 @@ void signal_handler_shutdown(int sig) {
 
 int main(int argc, char const *argv[]) {
     #define ERR 1
-    printf("Hello world from server!\n");
+    printf("Hello world from server!\n\n");
 
     // // Attach signal handlers
     // signal(SIGINT, signal_handler_shutdown);
@@ -66,7 +66,9 @@ int main(int argc, char const *argv[]) {
         sigaction(SIGTERM, &critical_sa_restore, NULL);
 
     if(argc < 3) {
-        printf("Insufficient arguments. Try again later.\n");
+        printf("Insufficient arguments.\n"
+            "Please provide the following parameters:\n"
+            "(output_folder) (number_of_parallel_tasks) (escalation_policy)\n");
         exit(EXIT_FAILURE);
     } else if(argc == 3) {
         // ...
@@ -199,7 +201,7 @@ int main(int argc, char const *argv[]) {
 
         // Handle server shutdown
         {
-            printf("Server shutting down...\n");
+            printf("\nServer shutting down...\n");
 
             // Save current ID
             lseek(id_fd, 0, SEEK_SET);

@@ -19,7 +19,7 @@
 
 int main(int argc, char const *argv[]) {
     #define ERR 1
-    printf("Hello world from client!\n");
+    printf("Hello world from client!\n\n");
 
     if(argc == 2) {
         char* mode = (char*) argv[1];
@@ -92,7 +92,8 @@ int main(int argc, char const *argv[]) {
         char* mode = (char*) argv[1];
 
         if(!strcmp("execute", mode)) {
-
+            
+            short int time = (atoi(argv[2]));
             char* type = (char*) argv[3];
             char* data = (char*) argv[4];
             if(strlen(data) > 300) {
@@ -109,6 +110,7 @@ int main(int argc, char const *argv[]) {
 
             ExecuteRequestDatagram request = create_execute_request_datagram();
             request->header.type = (!strcmp("-u", type)) ? DATAGRAM_TYPE_UNIQUE : DATAGRAM_TYPE_PIPELINE;
+            request->time = time;
             memcpy(request->data, data, strlen(data));
             SAFE_WRITE(server_fifo_fd, request, sizeof(EXECUTE_REQUEST_DATAGRAM));
 
@@ -128,7 +130,9 @@ int main(int argc, char const *argv[]) {
             printf("Invalid mode. Try again later.\n");
         }
     } else {
-        printf("Invalid number of arguments. Try again later.\n");
+        printf("Insufficient arguments.\n"
+            "Please provide the following parameters:\n"
+            "(execution_mode) [task_time] [task_type] [\"task\"]\n");
         exit(EXIT_FAILURE);
     }
 
