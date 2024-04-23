@@ -25,10 +25,10 @@
 #define CONTROL_STATUS_REQUEST_STR_EE "StatusRequestDatagram{ header: DatagramHeader{ version: 2, mode: DATAGRAM_MODE_STATUS_REQUEST, type: DATAGRAM_TYPE_NONE, pid: " STR(MOCK_PID) " } }"
 #define CONTROL_STATUS_REQUEST_STR_NEE "StatusRequestDatagram{ header: DatagramHeader{ version: 2, mode: 1, type: 0, pid: " STR(MOCK_PID) " } }"
 
-#define CONTROL_EXECUTE_REQUEST_STR_NEE_NSP "ExecuteRequestDatagram{ header: DatagramHeader{ version: 2, mode: 2, type: 1, pid: " STR(MOCK_PID) " }, data: '4C:6F:72:65:6D:20:69:70:73:75:6D:20:64:6F:6C:6F:72:20:73:69:74:20:61:6D:65:74:2C:20:63:6F:6E:73:65:63:74:65:74:75:72:20:61:64:69:70:69:73:63:69:6E:67:20:65:6C:69:74:2E:20:4D:6F:72:62:69:20:6C:6F:62:6F:72:74:69:73:2C:20:65:6E:69:6D:20:65:75:20:66:72:69:6E:67:69:6C:6C:61:20:65:6C:65:6D:65:6E:74:75:6D:2C:20:6C:65:6F:20:65:72:61:74:20:62:69:62:65:6E:64:75:6D:20:6E:75:6C:6C:61:2C:20:61:74:20:65:66:66:69:63:69:74:75:72:20:6C:6F:72:65:6D:20:64:69:61:6D:20:65:67:65:74:20:6E:69:73:69:2E:20:50:72:6F:69:6E:20:65:75:69:73:6D:6F:64:2C:20:75:72:6E:61:20:61:20:63:75:72:73:75:73:20:73:65:6D:70:65:72:2C:20:66:65:6C:69:73:20:65:6C:69:74:20:73:6F:6C:6C:69:63:69:74:75:64:69:6E:20:70:75:72:75:73:2C:20:69:6E:20:6C:6F:62:6F:72:74:69:73:20:64:6F:6C:6F:72:20:6C:65:6F:20:61:20:65:73:74:2E:20:50:72:61:65:73:65:6E:74:20:61:6C:69:71:75:61:6D:20:6C:61:63:75:73:20:6E:65:63:20:6D:61:73:73:61:20:6C:61:6F:72:65:65:74:00' }"
-#define CONTROL_EXECUTE_REQUEST_STR_NEE_SP "ExecuteRequestDatagram{ header: DatagramHeader{ version: 2, mode: 2, type: 1, pid: " STR(MOCK_PID) " }, data: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi lobortis, enim eu fringilla elementum, leo erat bibendum nulla, at efficitur lorem diam eget nisi. Proin euismod, urna a cursus semper, felis elit sollicitudin purus, in lobortis dolor leo a est. Praesent aliquam lacus nec massa laoreet' }"
-#define CONTROL_EXECUTE_REQUEST_STR_EE_NSP "ExecuteRequestDatagram{ header: DatagramHeader{ version: 2, mode: DATAGRAM_MODE_EXECUTE_REQUEST, type: DATAGRAM_TYPE_UNIQUE, pid: " STR(MOCK_PID) " }, data: '4C:6F:72:65:6D:20:69:70:73:75:6D:20:64:6F:6C:6F:72:20:73:69:74:20:61:6D:65:74:2C:20:63:6F:6E:73:65:63:74:65:74:75:72:20:61:64:69:70:69:73:63:69:6E:67:20:65:6C:69:74:2E:20:4D:6F:72:62:69:20:6C:6F:62:6F:72:74:69:73:2C:20:65:6E:69:6D:20:65:75:20:66:72:69:6E:67:69:6C:6C:61:20:65:6C:65:6D:65:6E:74:75:6D:2C:20:6C:65:6F:20:65:72:61:74:20:62:69:62:65:6E:64:75:6D:20:6E:75:6C:6C:61:2C:20:61:74:20:65:66:66:69:63:69:74:75:72:20:6C:6F:72:65:6D:20:64:69:61:6D:20:65:67:65:74:20:6E:69:73:69:2E:20:50:72:6F:69:6E:20:65:75:69:73:6D:6F:64:2C:20:75:72:6E:61:20:61:20:63:75:72:73:75:73:20:73:65:6D:70:65:72:2C:20:66:65:6C:69:73:20:65:6C:69:74:20:73:6F:6C:6C:69:63:69:74:75:64:69:6E:20:70:75:72:75:73:2C:20:69:6E:20:6C:6F:62:6F:72:74:69:73:20:64:6F:6C:6F:72:20:6C:65:6F:20:61:20:65:73:74:2E:20:50:72:61:65:73:65:6E:74:20:61:6C:69:71:75:61:6D:20:6C:61:63:75:73:20:6E:65:63:20:6D:61:73:73:61:20:6C:61:6F:72:65:65:74:00' }"
-#define CONTROL_EXECUTE_REQUEST_STR_EE_SP "ExecuteRequestDatagram{ header: DatagramHeader{ version: 2, mode: DATAGRAM_MODE_EXECUTE_REQUEST, type: DATAGRAM_TYPE_UNIQUE, pid: " STR(MOCK_PID) " }, data: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi lobortis, enim eu fringilla elementum, leo erat bibendum nulla, at efficitur lorem diam eget nisi. Proin euismod, urna a cursus semper, felis elit sollicitudin purus, in lobortis dolor leo a est. Praesent aliquam lacus nec massa laoreet' }"
+#define CONTROL_EXECUTE_REQUEST_STR_NEE_NSP "ExecuteRequestDatagram{ header: DatagramHeader{ version: 2, mode: 2, type: 1, pid: " STR(MOCK_PID) " }, time: 69, data: '4C:6F:72:65:6D:20:69:70:73:75:6D:20:64:6F:6C:6F:72:20:73:69:74:20:61:6D:65:74:2C:20:63:6F:6E:73:65:63:74:65:74:75:72:20:61:64:69:70:69:73:63:69:6E:67:20:65:6C:69:74:2E:20:4D:6F:72:62:69:20:6C:6F:62:6F:72:74:69:73:2C:20:65:6E:69:6D:20:65:75:20:66:72:69:6E:67:69:6C:6C:61:20:65:6C:65:6D:65:6E:74:75:6D:2C:20:6C:65:6F:20:65:72:61:74:20:62:69:62:65:6E:64:75:6D:20:6E:75:6C:6C:61:2C:20:61:74:20:65:66:66:69:63:69:74:75:72:20:6C:6F:72:65:6D:20:64:69:61:6D:20:65:67:65:74:20:6E:69:73:69:2E:20:50:72:6F:69:6E:20:65:75:69:73:6D:6F:64:2C:20:75:72:6E:61:20:61:20:63:75:72:73:75:73:20:73:65:6D:70:65:72:2C:20:66:65:6C:69:73:20:65:6C:69:74:20:73:6F:6C:6C:69:63:69:74:75:64:69:6E:20:70:75:72:75:73:2C:20:69:6E:20:6C:6F:62:6F:72:74:69:73:20:64:6F:6C:6F:72:20:6C:65:6F:20:61:20:65:73:74:2E:20:50:72:61:65:73:65:6E:74:20:61:6C:69:71:75:61:6D:20:6C:61:63:75:73:20:6E:65:63:20:6D:61:73:73:61:20:6C:61:6F:72:65:65:74:00' }"
+#define CONTROL_EXECUTE_REQUEST_STR_NEE_SP "ExecuteRequestDatagram{ header: DatagramHeader{ version: 2, mode: 2, type: 1, pid: " STR(MOCK_PID) " }, time: 69, data: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi lobortis, enim eu fringilla elementum, leo erat bibendum nulla, at efficitur lorem diam eget nisi. Proin euismod, urna a cursus semper, felis elit sollicitudin purus, in lobortis dolor leo a est. Praesent aliquam lacus nec massa laoreet' }"
+#define CONTROL_EXECUTE_REQUEST_STR_EE_NSP "ExecuteRequestDatagram{ header: DatagramHeader{ version: 2, mode: DATAGRAM_MODE_EXECUTE_REQUEST, type: DATAGRAM_TYPE_UNIQUE, pid: " STR(MOCK_PID) " }, time: 69, data: '4C:6F:72:65:6D:20:69:70:73:75:6D:20:64:6F:6C:6F:72:20:73:69:74:20:61:6D:65:74:2C:20:63:6F:6E:73:65:63:74:65:74:75:72:20:61:64:69:70:69:73:63:69:6E:67:20:65:6C:69:74:2E:20:4D:6F:72:62:69:20:6C:6F:62:6F:72:74:69:73:2C:20:65:6E:69:6D:20:65:75:20:66:72:69:6E:67:69:6C:6C:61:20:65:6C:65:6D:65:6E:74:75:6D:2C:20:6C:65:6F:20:65:72:61:74:20:62:69:62:65:6E:64:75:6D:20:6E:75:6C:6C:61:2C:20:61:74:20:65:66:66:69:63:69:74:75:72:20:6C:6F:72:65:6D:20:64:69:61:6D:20:65:67:65:74:20:6E:69:73:69:2E:20:50:72:6F:69:6E:20:65:75:69:73:6D:6F:64:2C:20:75:72:6E:61:20:61:20:63:75:72:73:75:73:20:73:65:6D:70:65:72:2C:20:66:65:6C:69:73:20:65:6C:69:74:20:73:6F:6C:6C:69:63:69:74:75:64:69:6E:20:70:75:72:75:73:2C:20:69:6E:20:6C:6F:62:6F:72:74:69:73:20:64:6F:6C:6F:72:20:6C:65:6F:20:61:20:65:73:74:2E:20:50:72:61:65:73:65:6E:74:20:61:6C:69:71:75:61:6D:20:6C:61:63:75:73:20:6E:65:63:20:6D:61:73:73:61:20:6C:61:6F:72:65:65:74:00' }"
+#define CONTROL_EXECUTE_REQUEST_STR_EE_SP "ExecuteRequestDatagram{ header: DatagramHeader{ version: 2, mode: DATAGRAM_MODE_EXECUTE_REQUEST, type: DATAGRAM_TYPE_UNIQUE, pid: " STR(MOCK_PID) " }, time: 69, data: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi lobortis, enim eu fringilla elementum, leo erat bibendum nulla, at efficitur lorem diam eget nisi. Proin euismod, urna a cursus semper, felis elit sollicitudin purus, in lobortis dolor leo a est. Praesent aliquam lacus nec massa laoreet' }"
 
 #define CONTROL_STATUS_RESPONSE_STR_NEE_NSP "StatusResponseDatagram{ header: DatagramHeader{ version: 2, mode: 3, type: 0, pid: " STR(MOCK_PID) " }, payload_len: 13, data: '48:65:6C:6C:6F:20:77:6F:72:6C:64:21:00' }"
 #define CONTROL_STATUS_RESPONSE_STR_NEE_SP "StatusResponseDatagram{ header: DatagramHeader{ version: 2, mode: 3, type: 0, pid: " STR(MOCK_PID) " }, payload_len: 13, data: 'Hello world!' }"
@@ -81,7 +81,7 @@ void test_execute_request_datagram(ExecuteRequestDatagram dg) {
             execute_str_nee_nsp, 
             CONTROL_EXECUTE_REQUEST_STR_NEE_NSP
         ),
-        "[ERD] [TOSTRING_NEE_NSP] Status datagram read from test data does not match control."
+        "[ERD] [TOSTRING_NEE_NSP] Execute datagram read from test data does not match control."
     )
 
     ASSERT(
@@ -89,7 +89,7 @@ void test_execute_request_datagram(ExecuteRequestDatagram dg) {
             execute_str_nee_sp, 
             CONTROL_EXECUTE_REQUEST_STR_NEE_SP
         ),
-        "[ERD] [TOSTRING_NEE_SP] Status datagram read from test data does not match control."
+        "[ERD] [TOSTRING_NEE_SP] Execute datagram read from test data does not match control."
     )
 
     ASSERT(
@@ -97,7 +97,7 @@ void test_execute_request_datagram(ExecuteRequestDatagram dg) {
             execute_str_ee_nsp, 
             CONTROL_EXECUTE_REQUEST_STR_EE_NSP
         ),
-        "[ERD] [TOSTRING_EE_NSP] Status datagram read from test data does not match control."
+        "[ERD] [TOSTRING_EE_NSP] Execute datagram read from test data does not match control."
     )
 
     ASSERT(
@@ -105,7 +105,7 @@ void test_execute_request_datagram(ExecuteRequestDatagram dg) {
             execute_str_ee_sp, 
             CONTROL_EXECUTE_REQUEST_STR_EE_SP
         ),
-        "[ERD] [TOSTRING_EE_SP] Status datagram read from test data does not match control."
+        "[ERD] [TOSTRING_EE_SP] Execute datagram read from test data does not match control."
     )
 
     free(execute_str_nee_nsp);
@@ -251,6 +251,7 @@ void test_datagram(char* test_data_dir) {
         ExecuteRequestDatagram execute_req = create_execute_request_datagram();
         execute_req->header.pid = MOCK_PID;
         execute_req->header.type = DATAGRAM_TYPE_UNIQUE;
+        execute_req->time = 0x45;
         memcpy(execute_req->data, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi lobortis, enim eu fringilla elementum, leo erat bibendum nulla, at efficitur lorem diam eget nisi. Proin euismod, urna a cursus semper, felis elit sollicitudin purus, in lobortis dolor leo a est. Praesent aliquam lacus nec massa laoreet", 300);
         test_execute_request_datagram(execute_req);
 

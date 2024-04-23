@@ -1,3 +1,15 @@
+/******************************************************************************
+ *                                 TEST SUITE                                 *
+ *                                                                            *
+ *   The Test Suite runs automatic tests to ensure various parts of the       *
+ * application behave as they are supposed to.                                *
+ *                                                                            *
+ * Currently tested modules:                                                  *
+ *   - common/datagram/datagram.c                                             *
+ *   - common/datagram/execute.c                                              *
+ *   - common/datagram/status.c                                               *
+ ******************************************************************************/
+
 #include <stdio.h>
 #include "common/util/string.h"
 #include "common/io/io.h"
