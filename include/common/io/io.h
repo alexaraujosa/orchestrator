@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "common/debug.h"
+#include "common/util/string.h"
 
 /**
  * @brief Attempts to open a file, and prints a message if an error occured.

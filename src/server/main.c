@@ -126,6 +126,8 @@ int main(int argc, char const *argv[]) {
             if(header.mode == DATAGRAM_MODE_EXECUTE_REQUEST) {
                 printf("Recieved Execute Request.\n");
 
+                ExecuteRequestDatagram erd = read_partial_execute_request_datagram(server_fifo_fd, header);
+
                 ExecuteResponseDatagram response = create_execute_response_datagram();
                 response->taskid = ++id;
                 SAFE_WRITE(client_fifo_fd, response, sizeof(EXECUTE_RESPONSE_DATAGRAM));

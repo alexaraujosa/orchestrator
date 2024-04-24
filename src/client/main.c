@@ -112,6 +112,13 @@ int main(int argc, char const *argv[]) {
             request->header.type = (!strcmp("-u", type)) ? DATAGRAM_TYPE_UNIQUE : DATAGRAM_TYPE_PIPELINE;
             request->time = time;
             memcpy(request->data, data, strlen(data));
+
+            #ifdef DEBUG
+            char* req_str = execute_request_datagram_to_string(request, 1, 0);
+            DEBUG_PRINT("[DEBUG] Sending request with %ld bytes:\n%s\n", sizeof(EXECUTE_REQUEST_DATAGRAM), req_str);
+            free(req_str);
+            #endif
+
             SAFE_WRITE(server_fifo_fd, request, sizeof(EXECUTE_REQUEST_DATAGRAM));
 
             int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_RDONLY, 0600);
