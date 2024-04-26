@@ -67,7 +67,7 @@ GArray* create_status_tasks_array() {
 }
 
 GArray* create_workers_array() {    // len == num_parallel_tasks + 1 (1 for status)
-    return g_array_new(FALSE, FALSE, sizeof(WorkerStatus));
+    return g_array_new(FALSE, FALSE, sizeof(OperatorWorkerStatus));
 }
 
 OperatorExecuteTask create_execute_task(int id_task, ExecuteRequestDatagram request) {
@@ -130,7 +130,7 @@ gint test_compare_func(gconstpointer requests_A, gconstpointer requests_B) {
 
 void print_worker(OperatorWorkerStatus worker) {
     printf(
-        "PID: %d | PD_READ: %d | PD_WRITE: %d | STATUS: %s", 
+        "PID: %d | PD_READ: %d | PD_WRITE: %d | STATUS: %s\n", 
             worker->pid, 
             worker->pd_read, 
             worker->pd_write, 
@@ -141,6 +141,23 @@ void print_worker(OperatorWorkerStatus worker) {
 void print_workers_array(GArray* array) {
     for(guint i = 0 ; i < array->len ; i++) 
         print_worker(g_array_index(array, OperatorWorkerStatus, i));
+}
+
+void print_execute(OperatorExecuteTask execute) {
+    printf("%d | %d | %d | %s | %lu\n", execute->id_task, execute->type, execute->queue_status, execute->data, execute->start->tv_sec);
+}
+
+void print_execute_array(GArray* array) {
+    for(guint i = 0 ; i < array->len ; i++) 
+        print_execute(g_array_index(array, OperatorExecuteTask, i));
+}
+
+void print_status_array(GArray* array) {
+    for(guint i = 0 ; i < array->len ; i++) {
+        char* res = status_request_datagram_to_string(g_array_index(array, StatusRequestDatagram, i), 0);
+        printf("%s\n", res);
+        free(res);
+    }
 }
 
 int start_operator(int num_parallel_tasks, char* history_file_path) {
@@ -164,11 +181,9 @@ int start_operator(int num_parallel_tasks, char* history_file_path) {
 
             pid_t pid = 0;int pd_write = 0; int pd_read = 0; // Just for debug purposes.
             
-            OperatorWorkerStatus worker = create_operator_worker(pid, pd_write, pd_read);print_worker(worker);  // BUG: NOT PRINTING
+            OperatorWorkerStatus worker = create_operator_worker(pid, pd_write, pd_read);
             g_array_insert_val(workers_array, i, worker);
         }
-
-        // print_workers_array(workers_array);  //BUG: TRY TO PRINT STATUS AND EXECUTE ARRAYS. THEN GO TO WORKERS
 
         while(1) {
 
@@ -182,10 +197,11 @@ int start_operator(int num_parallel_tasks, char* history_file_path) {
 
                     OperatorExecuteTask execute_task = create_execute_task(id_task, request);
                     add_execute_task(execute_tasks_array, execute_task, &test_compare_func);
+                    // print_execute_array(execute_tasks_array);
                 } else if(header.mode == DATAGRAM_MODE_STATUS_REQUEST) {
                     StatusRequestDatagram status_task = read_partial_status_request_datagram(pd[0], header);
                     add_status_task(status_tasks_array, status_task);
-                    // print_status_tasks_array(status_tasks_array);
+                    // print_status_array(status_tasks_array);
                 } else if(header.mode == DATAGRAM_MODE_CLOSE_REQUEST) {
                     g_array_free(execute_tasks_array, TRUE);
                     g_array_free(status_tasks_array, TRUE);
@@ -208,7 +224,8 @@ int start_operator(int num_parallel_tasks, char* history_file_path) {
                     execute_tasks_in_execution--;
                 } else if(worker->status == WORKER_FREE) {
                     WorkerExecuteRequest worker_request = get_next_execute_task(execute_tasks_array, execute_tasks_in_execution);
-                    SAFE_WRITE(worker->pd_write, worker_request, sizeof(WorkerExecuteRequest));
+                    // SAFE_WRITE(worker->pd_write, worker_request, sizeof(WorkerExecuteRequest)); //TODO: Remove when workers pds are done.
+                    //TODO: Set worker to WORKER_BUSY
                     execute_tasks_in_execution++;
                 }
 
