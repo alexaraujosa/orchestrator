@@ -23,6 +23,9 @@
 */
 #define TASK "task_"
 
+/**
+ * @brief Creates a fifo, checking for errors.
+*/
 #define SAFE_FIFO_SETUP(name, mode) ({\
     unlink(name);\
     int status = mkfifo(name, mode);\
