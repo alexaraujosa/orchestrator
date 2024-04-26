@@ -6,9 +6,18 @@
 #ifndef SERVER_OPERATOR_H
 #define SERVER_OPERATOR_H
 
+#include <glib-2.0/glib.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <poll.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <sys/types.h>
-#include <common/util/alloc.h>
+
+#include "common/util/alloc.h"
+#include "common/io/io.h"
+#include "common/datagram/execute.h"
+#include "common/datagram/status.h"
 
 #define HISTORY_VERSION 1
 
@@ -53,5 +62,7 @@ Task_history_entry read_task_history_entry(int fd);
 char* task_history_entry_to_string(Task_history_entry history_entry);
 
 #pragma endregion
+
+int start_operator(int num_parallel_tasks, char* history_file_path);
 
 #endif

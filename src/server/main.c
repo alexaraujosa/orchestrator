@@ -16,12 +16,14 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <signal.h>
+
 #include "common/io/io.h"
 #include "common/io/fifo.h"
 #include "common/datagram/datagram.h"
 #include "common/datagram/execute.h"
 #include "common/datagram/status.h"
 #include "common/util/string.h"
+#include "server/operator.h"
 
 volatile sig_atomic_t shutdown_requested = 0;
 
@@ -81,13 +83,13 @@ int main(int argc, char const *argv[]) {
             int id_fd = SAFE_OPEN(id_file_path, O_RDWR | O_CREAT, 0600);
 
             char* history_file_path = join_paths(2, output_folder, "history");
-            int write_to_history_fd = SAFE_OPEN(history_file_path, O_WRONLY| O_APPEND | O_CREAT, 0600);    //TODO: Depois para ler quando se pede um status, o O_APPEND n deixa
-            int read_from_history_fd = SAFE_OPEN(history_file_path, O_RDONLY, 0600);  //SEE: Podemos abrir dois descritores e um fica encarregue da escrita e outro da leitura
 
             char* server_fifo_path = join_paths(2, "build/", SERVER_FIFO);
             SAFE_FIFO_SETUP(server_fifo_path, 0600);
 
             int id = SETUP_ID(id_fd);
+
+            int operator_pd = start_operator(atoi(argv[2]), history_file_path);
         CRITICAL_END
 
         while(!shutdown_requested) {
@@ -126,22 +128,20 @@ int main(int argc, char const *argv[]) {
             if(header.mode == DATAGRAM_MODE_EXECUTE_REQUEST) {
                 printf("Recieved Execute Request.\n");
 
-                ExecuteRequestDatagram erd = read_partial_execute_request_datagram(server_fifo_fd, header);
+                ExecuteRequestDatagram request_execute = read_partial_execute_request_datagram(server_fifo_fd, header);
 
                 ExecuteResponseDatagram response = create_execute_response_datagram();
                 response->taskid = ++id;
                 SAFE_WRITE(client_fifo_fd, response, sizeof(EXECUTE_RESPONSE_DATAGRAM));
 
-                // TODO: Queue task using escalation politicy and speculate_time
+                SAFE_WRITE(operator_pd, request_execute, sizeof(EXECUTE_REQUEST_DATAGRAM));
+                SAFE_WRITE(operator_pd, &id, sizeof(int));
+
                 printf("Task with identifier %d queued.\n", id);
 
                 char* task_name = isnprintf(TASK "%d", id);
                 char* task_path = join_paths(2, output_folder, task_name);
                 int task_fd = SAFE_OPEN(task_path, O_WRONLY | O_CREAT, 0600);
-
-                // TODO: Execute tasks
-                // TODO: Write to task file the stdout and stderr
-                // TODO: Write to history file
 
                 close(task_fd);
                 free(task_path);
@@ -150,6 +150,9 @@ int main(int argc, char const *argv[]) {
                 printf("Execute Request finalized.\n");
             } else if(header.mode == DATAGRAM_MODE_STATUS_REQUEST) {
                 printf("Recieved Status Request.\n");
+
+                StatusRequestDatagram request_status = read_partial_status_request_datagram(server_fifo_fd, header);
+                SAFE_WRITE(operator_pd, request_status, sizeof(STATUS_REQUEST_DATAGRAM));
 
                 // TODO: Create status response payload
                 // NOTE: history.log tem id da task o tempo que demorou e o nome da tarefa
@@ -169,6 +172,7 @@ int main(int argc, char const *argv[]) {
                     DATAGRAM_HEADER response = create_datagram_header();
                     response.mode = DATAGRAM_MODE_CLOSE_RESPONSE;
                     SAFE_WRITE(client_fifo_fd, &response, sizeof(DATAGRAM_HEADER));
+                    // TODO: Send to operator
                 CRITICAL_END
 
                 // Request shutdown and fallthrough.
@@ -216,8 +220,6 @@ int main(int argc, char const *argv[]) {
 
             // Close file descriptors
             close(id_fd);
-            close(write_to_history_fd);
-            close(read_from_history_fd);
 
             // Delete server fifo
             unlink(server_fifo_path);
