@@ -81,7 +81,7 @@ int main(int argc, char const *argv[]) {
             int id_fd = SAFE_OPEN(id_file_path, O_RDWR | O_CREAT, 0600);
 
             char* history_file_path = join_paths(2, output_folder, "history.log");
-            int write_to_history_fd = SAFE_OPEN(history_file_path, O_APPEND | O_CREAT, 0600);    //TODO: Depois para ler quando se pede um status, o O_APPEND n deixa
+            int write_to_history_fd = SAFE_OPEN(history_file_path, O_WRONLY| O_APPEND | O_CREAT, 0600);    //TODO: Depois para ler quando se pede um status, o O_APPEND n deixa
             int read_from_history_fd = SAFE_OPEN(history_file_path, O_RDONLY, 0600);  //SEE: Podemos abrir dois descritores e um fica encarregue da escrita e outro da leitura
 
             char* server_fifo_path = join_paths(2, "build/", SERVER_FIFO);
