@@ -28,6 +28,13 @@
 #include "common/util/string.h"
 
 /**
+ * @brief The filesystem path separator for Unix systems. 
+ */
+#define FS_PATH_SEPARATOR '/'
+
+#define MAIN_LOG(...) do{ fprintf( stdout, __VA_ARGS__ ); } while( 0 )
+
+/**
  * @brief Attempts to open a file, and prints a message if an error occured.
  * @param fn The file name to open.
  * @param flags The flags to be passed to the open call.
@@ -109,11 +116,6 @@
         return ERR;\
     }\
 }
-
-/**
- * @brief The filesystem path separator for Unix systems. 
- */
-#define FS_PATH_SEPARATOR '/'
 
 /**
  * @brief Creates, if doesn't exist, a directory on the given path/name and mode.
