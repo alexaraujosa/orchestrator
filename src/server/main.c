@@ -10,7 +10,7 @@
  ******************************************************************************/
 
 #define _POSIX_C_SOURCE 199309L
-#define _BSD_SOURCE
+#define _DEFAULT_SOURCE
 #define _CRITICAL
 
 #include <fcntl.h>
@@ -29,7 +29,7 @@
 #include "server/operator.h"
 
 #define LOG_HEADER "[MAIN] "
-#define SHUTDOWN_TIMEOUT 1000
+#define SHUTDOWN_TIMEOUT 2000
 #define SHUTDOWN_TIMEOUT_INTERVAL 10
 
 volatile sig_atomic_t shutdown_requested = 0;
@@ -90,7 +90,7 @@ int main(int argc, char const *argv[]) {
 
             OPERATOR operator = start_operator(atoi(argv[2]), history_file_path);
             if (operator.pid == 0) {
-                printf(LOG_HEADER, "Unable to start operator. Shutting down.");
+                printf(LOG_HEADER "Unable to start operator. Shutting down.");
                 shutdown_requested = 1;
             }
             int operator_pd = operator.pd_write;
@@ -241,10 +241,6 @@ int main(int argc, char const *argv[]) {
 
             {
                 int status;
-                // if (waitpid(operator.pid, &status, WNOHANG) == -1) {
-                //     return EINVAL;
-                // }
-
                 int elapsed = 0;
                 int shutdown = 0;
                 int wret = 0;
@@ -271,7 +267,7 @@ int main(int argc, char const *argv[]) {
                     kill(operator.pid, SIGKILL);
                 }
 
-                printf(LOG_HEADER "Operator successfully closed.\n");
+                printf(LOG_HEADER "Successfully closed operator.\n");
             }
 
             // Save current ID
