@@ -42,7 +42,6 @@ void signal_handler_shutdown(int sig) {
 
 int main(int argc, char const *argv[]) {
     #define ERR 1
-    printf("Hello world from server!\n\n");
 
     #pragma region ======= SIGNALS / CRITICAL MARK =======
     struct sigaction critical_sa_apply;
@@ -67,13 +66,9 @@ int main(int argc, char const *argv[]) {
     pid_t pid = getpid();
 
     if(argc < 3) {
-        printf("Insufficient arguments.\n"
-            "Please provide the following parameters:\n"
-            "(output_folder) (number_of_parallel_tasks) (escalation_policy)\n");
+        printf("Usage: $ server <output_folder> <number_of_parallel_tasks> [escalation_policy]\n");
         exit(EXIT_FAILURE);
-    } else if(argc == 3) {
-        // ...
-    } else if(argc == 4) {
+    } else {
         char* output_folder = (char*) argv[1];
         CREATE_DIR(output_folder, 0700);
 
@@ -188,31 +183,6 @@ int main(int argc, char const *argv[]) {
 
                 // Request shutdown and fallthrough.
                 shutdown_requested = 1;
-
-                // printf("Server shutting down...\n");
-
-                // // Save current ID
-                // lseek(id_fd, 0, SEEK_SET);
-                // SAFE_WRITE(id_fd, &id, sizeof(int));
-
-                // // Close file descriptors
-                // close(id_fd);
-                // close(history_fd);
-                // close(client_fifo_fd);
-                // close(server_fifo_fd);
-
-                // // Delete server fifo
-                // unlink(server_fifo_path);
-
-                // // Free allocated strings
-                // free(id_file_path);
-                // free(history_file_path);
-                // free(client_fifo_path);
-                // free(client_fifo_name);
-                // free(server_fifo_path);
-
-                // printf("Successfully closed server.\n");
-                // exit(EXIT_SUCCESS);
             }
 
             close(client_fifo_fd);
@@ -224,9 +194,6 @@ int main(int argc, char const *argv[]) {
         // Handle server shutdown
         {
             printf(LOG_HEADER "Server shutting down...\n");
-
-            // Send shutdown request to Operator.
-            // printf(LOG_HEADER "Attempting to close Operator.\n");
 
             DATAGRAM_HEADER shutdown_request = create_datagram_header();
             shutdown_request.mode = DATAGRAM_MODE_CLOSE_REQUEST;
