@@ -9,6 +9,7 @@
 #define COMMON_UTIL_ALLOC_H
 
 #include <stdlib.h>
+#include <string.h>
 
 #define STRUCT_MEMBER_SIZE(type, member) (sizeof( ((type *)0)->member ))
 
