@@ -9,13 +9,45 @@
  *   Only one operator process is supposed to be used per server instance.    *
  ******************************************************************************/
 
+#define _POSIX_C_SOURCE 199309L
+#define _DEFAULT_SOURCE
 #define _CRITICAL
 
+#include <sys/wait.h>
 #include "server/operator.h"
 #include "server/worker.h"
 #include "server/worker_datagrams.h"
 
 #define LOG_HEADER "[OPERATOR] "
+#define SHUTDOWN_TIMEOUT 1000
+#define SHUTDOWN_TIMEOUT_INTERVAL 10
+
+typedef enum {
+    WORKER_UNKNOWN,
+    WORKER_IDLE,
+    WORKER_EXECUTING
+} OperatorStatus;
+
+typedef struct operator_worker_entry {
+    Worker worker;
+    OperatorStatus status;
+} OPERATOR_WORKER_ENTRY, *OperatorWorkerEntry;
+
+OperatorWorkerEntry create_operator_worker_entry(Worker worker) {
+    #define ERR NULL
+
+    OperatorWorkerEntry we = SAFE_ALLOC(OperatorWorkerEntry, sizeof(OPERATOR_WORKER_ENTRY));
+    we->worker = worker;
+    we->status = WORKER_IDLE;
+
+    return we;
+
+    #undef ERR
+}
+
+GArray* create_workers_array() { // len == num_parallel_tasks + 1 (1 for status)
+    return g_array_new(FALSE, FALSE, sizeof(OperatorWorkerEntry));
+}
 
 OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
     #define ERR (OPERATOR){ 0 }
@@ -37,6 +69,20 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
     if(pid == 0) {
         MAIN_LOG(LOG_HEADER "Operator started.\n");
         close(pd[1]);
+        
+        MAIN_LOG(LOG_HEADER "Stating %d Worker Processes.\n", num_parallel_tasks + 1);
+        GArray* worker_array = create_workers_array();
+        int general_tasks_in_execution = 0;
+
+        for(int i = 0 ; i < num_parallel_tasks + 1 ; i++) {
+            Worker worker = start_worker();
+
+            OperatorWorkerEntry entry = create_operator_worker_entry(worker);
+
+            g_array_insert_val(worker_array, i, entry);
+
+            MAIN_LOG(LOG_HEADER "Started worker #%d with PID %d.\n", i, worker->pid);
+        }
 
         volatile sig_atomic_t shutdown_requested = 0;
 
@@ -48,11 +94,11 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
             CRITICAL_END
 
             if (header.version == 0) {
-                // Read 0 bytes, fallback to 0.
+                // Datagram read fuck all. Ignore it.
                 continue;
             } else if (header.version != DATAGRAM_VERSION) {
                 // Datagram not supported.
-                MAIN_LOG(LOG_HEADER "Recieved unsupported datagram with version %d:\n", header.version);
+                MAIN_LOG(LOG_HEADER "Received unsupported datagram with version %d:\n", header.version);
 
                 drain_fifo(pd[0]);
                 continue;
@@ -81,16 +127,64 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
 
         // Handle graceful shutdown.
         MAIN_LOG(LOG_HEADER "Shutting down operator...\n");
+
+        // TODO: Suicide Workers
+        for (guint i = 0; i < worker_array->len; i++) {
+            OperatorWorkerEntry entry = g_array_index(worker_array, OperatorWorkerEntry, i);
+            MAIN_LOG(
+                LOG_HEADER "Shutting down worker #%d @ %d\n", 
+                i, 
+                entry->worker->pid
+            );
+
+            WorkerShutdownDatagram request = create_worker_shutdown_datagram();
+            SAFE_WRITE(entry->worker->pipe_write, request, sizeof(WORKER_SHUTDOWN_DATAGRAM));
+
+            int status;
+            int elapsed = 0;
+            int shutdown = 0;
+            int wret = 0;
+            while ((elapsed += SHUTDOWN_TIMEOUT_INTERVAL) < SHUTDOWN_TIMEOUT / (int)(worker_array->len)) {
+                wret = waitpid(entry->worker->pid, &status, WNOHANG);
+                if (wret == -1) {
+                    _exit(1);
+                }
+
+                usleep(SHUTDOWN_TIMEOUT_INTERVAL * 1000);
+            
+                if (wret && WIFEXITED(status)) {
+                    DEBUG_PRINT(
+                        LOG_HEADER "Worker #%d @ %d exited with code %d\n", 
+                        i, 
+                        entry->worker->pid, 
+                        WEXITSTATUS(status)
+                    );
+                    shutdown = 1;
+                    break;
+                }
+            }
+
+            // Worker refuses to shutdown, suicide it.
+            if (!shutdown) {
+                MAIN_LOG(LOG_HEADER "Worker has not closed within the acceptable timeout. Forcefully killing process.\n");
+                kill(entry->worker->pid, SIGKILL);
+            }
+
+            MAIN_LOG(
+                LOG_HEADER "Successfully closed worker #%d @ %d\n", 
+                i, 
+                entry->worker->pid
+            );
+        }
         
         close(read_from_history_fd);
         close(write_to_history_fd);
         close(pd[0]);
 
-        printf(LOG_HEADER "Successfully closed operator.\n");
-        _exit(42);
+        MAIN_LOG(LOG_HEADER "Successfully closed operator.\n");
+        _exit(0);
     } else {
         DEBUG_PRINT(LOG_HEADER "Server continue.\n");
-        // return pd[1];
 
         OPERATOR op = (OPERATOR){
             .pid = pid,
