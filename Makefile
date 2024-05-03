@@ -61,9 +61,9 @@ $(CLIENT_EXEC): $(COMMON_OBJS) $(CLIENT_OBJS)
 	mkdir -p $(BUILDDIR)
 	$(CC) $(LDFLAGS) $(COMMON_OBJS) $(CLIENT_OBJS) -o $@ $(LDLIBS)
 
-$(TEST_EXEC): $(COMMON_OBJS) $(TEST_OBJS)
+$(TEST_EXEC): $(COMMON_OBJS) $(SERVER_OBJS) $(CLIENT_OBJS) $(TEST_OBJS)
 	mkdir -p $(BUILDDIR)
-	$(CC) $(LDFLAGS) $(COMMON_OBJS) $(TEST_OBJS) -o $@ $(LDLIBS)
+	$(CC) $(LDFLAGS) $(COMMON_OBJS) $(filter-out %main.o, $(SERVER_OBJS)) $(filter-out %main.o, $(CLIENT_OBJS)) $(TEST_OBJS) -o $@ $(LDLIBS)
 
 # Include the dependency files
 -include $(SERVER_DEPS)
