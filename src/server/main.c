@@ -10,12 +10,15 @@
  ******************************************************************************/
 
 #define _POSIX_C_SOURCE 199309L
+#define _BSD_SOURCE
 #define _CRITICAL
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <sys/wait.h>
+#include <time.h>
 
 #include "common/io/io.h"
 #include "common/io/fifo.h"
@@ -24,6 +27,10 @@
 #include "common/datagram/status.h"
 #include "common/util/string.h"
 #include "server/operator.h"
+
+#define LOG_HEADER "[MAIN] "
+#define SHUTDOWN_TIMEOUT 1000
+#define SHUTDOWN_TIMEOUT_INTERVAL 10
 
 volatile sig_atomic_t shutdown_requested = 0;
 
@@ -37,16 +44,7 @@ int main(int argc, char const *argv[]) {
     #define ERR 1
     printf("Hello world from server!\n\n");
 
-    // // Attach signal handlers
-    // signal(SIGINT, signal_handler_shutdown);
-    // signal(SIGTERM, signal_handler_shutdown);
-
-    // // Prepare signal mask
-    // sigset_t signal_set;
-    // sigemptyset(&signal_set);
-    // sigaddset(&signal_set, SIGINT);
-    // sigaddset(&signal_set, SIGTERM);
-
+    #pragma region ======= SIGNALS / CRITICAL MARK =======
     struct sigaction critical_sa_apply;
     struct sigaction critical_sa_restore;
 
@@ -55,17 +53,18 @@ int main(int argc, char const *argv[]) {
     critical_sa_apply.sa_handler = signal_handler_shutdown;
     critical_sa_apply.sa_flags = 0;
 
-    // #define CRITICAL_START sigprocmask(SIG_BLOCK, &signal_set, NULL);
-    // #define CRITICAL_END sigprocmask(SIG_UNBLOCK, &signal_set, NULL);
-
     INIT_CRITICAL_MARK
 
     #define CRITICAL_START SET_CRITICAL_MARK(0);\
         sigaction(SIGINT, &critical_sa_apply, &critical_sa_restore);\
         sigaction(SIGTERM, &critical_sa_apply, &critical_sa_restore);
-    #define CRITICAL_END SET_CRITICAL_MARK(0);\
+    #define CRITICAL_END SET_CRITICAL_MARK(1);\
         sigaction(SIGINT, &critical_sa_restore, NULL);\
         sigaction(SIGTERM, &critical_sa_restore, NULL);
+    
+    #pragma endregion
+
+    pid_t pid = getpid();
 
     if(argc < 3) {
         printf("Insufficient arguments.\n"
@@ -89,11 +88,20 @@ int main(int argc, char const *argv[]) {
 
             int id = SETUP_ID(id_fd);
 
-            int operator_pd = start_operator(atoi(argv[2]), history_file_path);
+            OPERATOR operator = start_operator(atoi(argv[2]), history_file_path);
+            if (operator.pid == 0) {
+                printf(LOG_HEADER, "Unable to start operator. Shutting down.");
+                shutdown_requested = 1;
+            }
+            int operator_pd = operator.pd_write;
+
+            // int operator_pd = NULL;
+            DEBUG_PRINT(LOG_HEADER "Operator PID: %d\n", operator.pid);
+            DEBUG_PRINT(LOG_HEADER "Operator Pipe: %d\n", operator_pd);
         CRITICAL_END
 
         while(!shutdown_requested) {
-            DEBUG_PRINT("[DEBUG] New cycle.\n");
+            DEBUG_PRINT(LOG_HEADER "New cycle.\n");
 
             // Read incoming requests.
             CRITICAL_START
@@ -110,23 +118,27 @@ int main(int argc, char const *argv[]) {
                 continue;
             } else if (header.version != DATAGRAM_VERSION) {
                 // Datagram not supported.
-                printf("Recieved unsupported datagram with version %d:\n", header.version);
+                printf(LOG_HEADER "Recieved unsupported datagram with version %d:\n", header.version);
 
                 drain_fifo(server_fifo_fd);
                 close(server_fifo_fd);
                 continue;
             }
 
+            printf(LOG_HEADER "New request recieved.\n");
+
+            #ifdef DEBUG
             char* dh_str = datagram_header_to_string(&header, 1);
-            printf("%s\n", dh_str);
+            printf(LOG_HEADER "Request Header: %s\n", dh_str);
             free(dh_str);
+            #endif
 
             char* client_fifo_name = isnprintf(CLIENT_FIFO "%d", header.pid);
             char* client_fifo_path = join_paths(2, "build/", client_fifo_name);
             int client_fifo_fd = SAFE_OPEN(client_fifo_path, O_WRONLY, 0600);
 
             if(header.mode == DATAGRAM_MODE_EXECUTE_REQUEST) {
-                printf("Recieved Execute Request.\n");
+                DEBUG_PRINT(LOG_HEADER "Processing Execute Request.\n");
 
                 ExecuteRequestDatagram request_execute = read_partial_execute_request_datagram(server_fifo_fd, header);
 
@@ -137,7 +149,7 @@ int main(int argc, char const *argv[]) {
                 SAFE_WRITE(operator_pd, request_execute, sizeof(EXECUTE_REQUEST_DATAGRAM));
                 SAFE_WRITE(operator_pd, &id, sizeof(int));
 
-                printf("Task with identifier %d queued.\n", id);
+                printf(LOG_HEADER "Task with identifier %d queued.\n", id);
 
                 char* task_name = isnprintf(TASK "%d", id);
                 char* task_path = join_paths(2, output_folder, task_name);
@@ -147,9 +159,9 @@ int main(int argc, char const *argv[]) {
                 free(task_path);
                 free(task_name);
 
-                printf("Execute Request finalized.\n");
+                DEBUG_PRINT(LOG_HEADER "Execute Request finalized.\n");
             } else if(header.mode == DATAGRAM_MODE_STATUS_REQUEST) {
-                printf("Recieved Status Request.\n");
+                DEBUG_PRINT(LOG_HEADER "Processing Status Request.\n");
 
                 StatusRequestDatagram request_status = read_partial_status_request_datagram(server_fifo_fd, header);
                 SAFE_WRITE(operator_pd, request_status, sizeof(STATUS_REQUEST_DATAGRAM));
@@ -164,15 +176,14 @@ int main(int argc, char const *argv[]) {
                 // StatusResponseDatagram response = create_status_response_datagram(status_res_payload, 13);
                 // write(client_fifo_fd, response, sizeof(STATUS_RESPONSE_DATAGRAM));
 
-                printf("Status Request finalized.\n");
+                DEBUG_PRINT(LOG_HEADER "Status Request finalized.\n");
             } else if(header.mode == DATAGRAM_MODE_CLOSE_REQUEST) {
-                printf("Recieved Close request.\n");
+                DEBUG_PRINT(LOG_HEADER "Processing Close request.\n");
 
                 CRITICAL_START
                     DATAGRAM_HEADER response = create_datagram_header();
                     response.mode = DATAGRAM_MODE_CLOSE_RESPONSE;
                     SAFE_WRITE(client_fifo_fd, &response, sizeof(DATAGRAM_HEADER));
-                    // TODO: Send to operator
                 CRITICAL_END
 
                 // Request shutdown and fallthrough.
@@ -212,7 +223,56 @@ int main(int argc, char const *argv[]) {
 
         // Handle server shutdown
         {
-            printf("\nServer shutting down...\n");
+            printf(LOG_HEADER "Server shutting down...\n");
+
+            // Send shutdown request to Operator.
+            // printf(LOG_HEADER "Attempting to close Operator.\n");
+
+            DATAGRAM_HEADER shutdown_request = create_datagram_header();
+            shutdown_request.mode = DATAGRAM_MODE_CLOSE_REQUEST;
+            shutdown_request.pid = pid;
+
+            #ifdef DEBUG
+            char* req_str = datagram_header_to_string(&shutdown_request, 1);
+            DEBUG_PRINT(LOG_HEADER "Shutdown Request: %s\n", req_str);
+            #endif
+
+            SAFE_WRITE(operator_pd, &shutdown_request, sizeof(DATAGRAM_HEADER));
+
+            {
+                int status;
+                // if (waitpid(operator.pid, &status, WNOHANG) == -1) {
+                //     return EINVAL;
+                // }
+
+                int elapsed = 0;
+                int shutdown = 0;
+                int wret = 0;
+                while ((elapsed += SHUTDOWN_TIMEOUT_INTERVAL) < SHUTDOWN_TIMEOUT) {
+                    wret = waitpid(operator.pid, &status, WNOHANG);
+                    if (wret == -1) {
+                        return EINVAL;
+                    }
+
+                    usleep(SHUTDOWN_TIMEOUT_INTERVAL * 1000);
+                
+                    if (wret && WIFEXITED(status)) {
+                        DEBUG_PRINT(LOG_HEADER "Operator exited with code %d\n", WEXITSTATUS(status));
+                        shutdown = 1;
+                        break;
+                    }
+                }
+
+                printf(LOG_HEADER "Shutdown status: %d\n", shutdown);
+
+                // Operator refuses to shutdown, suicide it.
+                if (!shutdown) {
+                    printf(LOG_HEADER "Operator has not closed within the acceptable timeout. Forcefully killing process.\n");
+                    kill(operator.pid, SIGKILL);
+                }
+
+                printf(LOG_HEADER "Operator successfully closed.\n");
+            }
 
             // Save current ID
             lseek(id_fd, 0, SEEK_SET);
@@ -229,7 +289,7 @@ int main(int argc, char const *argv[]) {
             free(history_file_path);
             free(server_fifo_path);
 
-            printf("Successfully closed server.\n");
+            printf(LOG_HEADER "Successfully closed server.\n");
             exit(EXIT_SUCCESS);
         }
     }
