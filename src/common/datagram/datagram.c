@@ -38,7 +38,9 @@ char* datagram_header_to_string(DatagramHeader header, int expandEnums) {
         "DATAGRAM_MODE_STATUS_REQUEST",
         "DATAGRAM_MODE_EXECUTE_REQUEST",
         "DATAGRAM_MODE_STATUS_RESPONSE",
-        "DATAGRAM_MODE_EXECUTE_RESPONSE"
+        "DATAGRAM_MODE_EXECUTE_RESPONSE",
+        "DATAGRAM_MODE_CLOSE_REQUEST",
+        "DATAGRAM_MODE_CLOSE_RESPONSE"
     };
     static const char* datagram_type_strings[] = {
         "DATAGRAM_TYPE_NONE",
