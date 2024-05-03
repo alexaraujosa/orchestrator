@@ -21,6 +21,11 @@
 
 #define HISTORY_VERSION 1
 
+typedef struct operator {
+    pid_t pid;
+    int pd_write;
+} OPERATOR, *Operator;
+
 
 #pragma region ======= HISTORY =======
 //NOTE: NÃO SEI SE PERCEBI BEM, MAS A IDEIA ENTÃO SERIA TER FUNÇÕES RELACIONADAS AO HISTORY (FILE INTEIRO) NESTA REGION
@@ -63,6 +68,6 @@ char* task_history_entry_to_string(Task_history_entry history_entry);
 
 #pragma endregion
 
-int start_operator(int num_parallel_tasks, char* history_file_path);
+OPERATOR start_operator(int num_parallel_tasks, char* history_file_path);
 
 #endif
