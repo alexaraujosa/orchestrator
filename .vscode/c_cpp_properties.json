@@ -8,7 +8,8 @@
                 "/usr/lib/x86_64-linux-gnu/glib-2.0/include"
             ],
             "defines": [
-                "__LINE__"
+                "__LINE__",
+                "DEBUG"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "gnu17",

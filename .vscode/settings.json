@@ -17,7 +17,15 @@
         "cstdlib": "c",
         "signal.h": "c",
         "debug.h": "c",
-        "fifo.h": "c"
+        "fifo.h": "c",
+        "alloc.h": "c",
+        "io.h": "c",
+        "worker.h": "c",
+        "error.h": "c",
+        "worker_datagrams.h": "c",
+        "stdio.h": "c",
+        "operator.h": "c",
+        "unistd.h": "c"
     },
     "cmake.configureOnOpen": false,
     "todo-tree.highlights.useColourScheme": true,
