@@ -14,6 +14,7 @@
 #include "common/util/string.h"
 #include "common/io/io.h"
 #include "test/common/datagram/datagram.h"
+#include "test/server/worker_datagrams.h"
 
 #define TEST_DATA_DIR "test_data"
 
@@ -28,6 +29,7 @@ int main(int argc, char const *argv[]) {
 
     // Test runners
     test_datagram(test_data_dir);
+    test_worker_datagram(test_data_dir);
 
     // Cleanup
     free(test_data_dir);
