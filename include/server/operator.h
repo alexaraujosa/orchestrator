@@ -37,7 +37,6 @@ typedef struct operator {
  * @param history_version A uint16_t, which represents the history file version
  */
 #define IS_HISTORY_SUPPORTED(history_version) (history_version == HISTORY_VERSION)
-
 #pragma endregion
 
 #pragma region ======= HISTORY_ENTRY =======
@@ -68,6 +67,10 @@ char* task_history_entry_to_string(Task_history_entry history_entry);
 
 #pragma endregion
 
+
+/**
+ * @brief Starts a new operator process.
+ */
 OPERATOR start_operator(int num_parallel_tasks, char* history_file_path);
 
 #endif

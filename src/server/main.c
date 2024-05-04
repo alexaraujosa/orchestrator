@@ -27,6 +27,7 @@
 #include "common/datagram/status.h"
 #include "common/util/string.h"
 #include "server/operator.h"
+#include "server/process_mark.h"
 
 #define LOG_HEADER "[MAIN] "
 #define SHUTDOWN_TIMEOUT 2000
@@ -83,12 +84,20 @@ int main(int argc, char const *argv[]) {
 
             int id = SETUP_ID(id_fd);
 
+            int _main_pid = getpid();
+
             OPERATOR operator = start_operator(atoi(argv[2]), history_file_path);
             if (operator.pid == 0) {
-                printf(LOG_HEADER "Unable to start operator. Shutting down.");
+                if (_main_pid != getpid()) {
+                    _exit(0);
+                }
+
+                printf(LOG_HEADER "Unable to start operator. Shutting down.\n");
                 shutdown_requested = 1;
             }
             int operator_pd = operator.pd_write;
+            
+            int MAIN_PID = getpid();
 
             // int operator_pd = NULL;
             DEBUG_PRINT(LOG_HEADER "Operator PID: %d\n", operator.pid);
@@ -141,6 +150,11 @@ int main(int argc, char const *argv[]) {
                 response->taskid = ++id;
                 SAFE_WRITE(client_fifo_fd, response, sizeof(EXECUTE_RESPONSE_DATAGRAM));
 
+                // WRITE_PROCESS_MARK(operator_pd, MAIN_SERVER_PROCESS_MARK);
+                char mark_buf[] = MAIN_SERVER_PROCESS_MARK;
+                printf(LOG_HEADER "MARK: %d %d\n", mark_buf[0], mark_buf[1]);
+                SAFE_WRITE(operator_pd, &mark_buf, 2 * sizeof(char));
+
                 SAFE_WRITE(operator_pd, request_execute, sizeof(EXECUTE_REQUEST_DATAGRAM));
                 SAFE_WRITE(operator_pd, &id, sizeof(int));
 
@@ -159,6 +173,8 @@ int main(int argc, char const *argv[]) {
                 DEBUG_PRINT(LOG_HEADER "Processing Status Request.\n");
 
                 StatusRequestDatagram request_status = read_partial_status_request_datagram(server_fifo_fd, header);
+
+                WRITE_PROCESS_MARK(operator_pd, MAIN_SERVER_PROCESS_MARK);
                 SAFE_WRITE(operator_pd, request_status, sizeof(STATUS_REQUEST_DATAGRAM));
 
                 // TODO: Create status response payload
@@ -178,6 +194,8 @@ int main(int argc, char const *argv[]) {
                 CRITICAL_START
                     DATAGRAM_HEADER response = create_datagram_header();
                     response.mode = DATAGRAM_MODE_CLOSE_RESPONSE;
+
+                    WRITE_PROCESS_MARK(operator_pd, MAIN_SERVER_PROCESS_MARK);
                     SAFE_WRITE(client_fifo_fd, &response, sizeof(DATAGRAM_HEADER));
                 CRITICAL_END
 
@@ -193,48 +211,53 @@ int main(int argc, char const *argv[]) {
 
         // Handle server shutdown
         {
-            printf(LOG_HEADER "Server shutting down...\n");
+            // printf(LOG_HEADER "Server shutting down...\n");
+            printf(LOG_HEADER "%d Server shutting down...\n", MAIN_PID);
 
-            DATAGRAM_HEADER shutdown_request = create_datagram_header();
-            shutdown_request.mode = DATAGRAM_MODE_CLOSE_REQUEST;
-            shutdown_request.pid = pid;
+            if (operator.pid != 0) {
+                DATAGRAM_HEADER shutdown_request = create_datagram_header();
+                shutdown_request.mode = DATAGRAM_MODE_CLOSE_REQUEST;
+                shutdown_request.pid = pid;
 
-            #ifdef DEBUG
-            char* req_str = datagram_header_to_string(&shutdown_request, 1);
-            DEBUG_PRINT(LOG_HEADER "Shutdown Request: %s\n", req_str);
-            #endif
-
-            SAFE_WRITE(operator_pd, &shutdown_request, sizeof(DATAGRAM_HEADER));
-
-            {
-                int status;
-                int elapsed = 0;
-                int shutdown = 0;
-                int wret = 0;
-                while ((elapsed += SHUTDOWN_TIMEOUT_INTERVAL) < SHUTDOWN_TIMEOUT) {
-                    wret = waitpid(operator.pid, &status, WNOHANG);
-                    if (wret == -1) {
-                        return EINVAL;
-                    }
-
-                    usleep(SHUTDOWN_TIMEOUT_INTERVAL * 1000);
+                #ifdef DEBUG
+                char* req_str = datagram_header_to_string(&shutdown_request, 1);
+                DEBUG_PRINT(LOG_HEADER "Shutdown Request: %s\n", req_str);
+                #endif
                 
-                    if (wret && WIFEXITED(status)) {
-                        DEBUG_PRINT(LOG_HEADER "Operator exited with code %d\n", WEXITSTATUS(status));
-                        shutdown = 1;
-                        break;
+                // WARN: Do not send a Process Mark when shutting down the Operator process. A SIGINT will interrupt the read.
+                // WRITE_PROCESS_MARK(operator_pd, MAIN_SERVER_PROCESS_MARK);
+                SAFE_WRITE(operator_pd, &shutdown_request, sizeof(DATAGRAM_HEADER));
+
+                {
+                    int status;
+                    int elapsed = 0;
+                    int shutdown = 0;
+                    int wret = 0;
+                    while ((elapsed += SHUTDOWN_TIMEOUT_INTERVAL) < SHUTDOWN_TIMEOUT) {
+                        wret = waitpid(operator.pid, &status, WNOHANG);
+                        if (wret == -1) {
+                            return EINVAL;
+                        }
+
+                        usleep(SHUTDOWN_TIMEOUT_INTERVAL * 1000);
+                    
+                        if (wret && WIFEXITED(status)) {
+                            DEBUG_PRINT(LOG_HEADER "Operator exited with code %d\n", WEXITSTATUS(status));
+                            shutdown = 1;
+                            break;
+                        }
                     }
+
+                    printf(LOG_HEADER "Shutdown status: %d\n", shutdown);
+
+                    // Operator refuses to shutdown, suicide it.
+                    if (!shutdown) {
+                        printf(LOG_HEADER "Operator has not closed within the acceptable timeout. Forcefully killing process.\n");
+                        kill(operator.pid, SIGKILL);
+                    }
+
+                    printf(LOG_HEADER "Successfully closed operator.\n");
                 }
-
-                printf(LOG_HEADER "Shutdown status: %d\n", shutdown);
-
-                // Operator refuses to shutdown, suicide it.
-                if (!shutdown) {
-                    printf(LOG_HEADER "Operator has not closed within the acceptable timeout. Forcefully killing process.\n");
-                    kill(operator.pid, SIGKILL);
-                }
-
-                printf(LOG_HEADER "Successfully closed operator.\n");
             }
 
             // Save current ID

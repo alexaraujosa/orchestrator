@@ -17,6 +17,7 @@
 #include "server/operator.h"
 #include "server/worker.h"
 #include "server/worker_datagrams.h"
+#include "server/process_mark.h"
 
 #define LOG_HEADER "[OPERATOR] "
 #define SHUTDOWN_TIMEOUT 1000
@@ -32,6 +33,21 @@ typedef struct operator_worker_entry {
     Worker worker;
     OperatorStatus status;
 } OPERATOR_WORKER_ENTRY, *OperatorWorkerEntry;
+
+
+// Yes, this uses a global variable, but the alternative is having the workers be orphaned after the operator dies.
+GArray* _children;
+void signal_sigsegv(int signum) {
+    if (signum != SIGSEGV) return;
+
+    MAIN_LOG(LOG_HEADER "Segmentation fault. Terminating workers.\n");
+
+    for (guint i = 0; i < _children->len; ++i) {
+        kill(g_array_index(_children, OperatorWorkerEntry, i)->worker->pid, SIGKILL);
+    }
+
+    _exit(EXIT_FAILURE);
+}
 
 OperatorWorkerEntry create_operator_worker_entry(Worker worker) {
     #define ERR NULL
@@ -51,11 +67,15 @@ GArray* create_workers_array() { // len == num_parallel_tasks + 1 (1 for status)
 
 OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
     #define ERR (OPERATOR){ 0 }
+
+    // Handle Segmentation Faults "gracefully"
+    signal(SIGSEGV, signal_sigsegv);
+
     int pd[2];
     pipe(pd); 
 
     INIT_CRITICAL_MARK
-    #define CRITICAL_START SET_CRITICAL_MARK(0);
+    #define CRITICAL_START SET_CRITICAL_MARK(1);
     #define CRITICAL_END SET_CRITICAL_MARK(0);
 
     CRITICAL_START
@@ -70,6 +90,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
         MAIN_LOG(LOG_HEADER "Operator started.\n");
         close(pd[1]);
         
+        // Initialize Workers
         MAIN_LOG(LOG_HEADER "Stating %d Worker Processes.\n", num_parallel_tasks + 1);
         GArray* worker_array = create_workers_array();
         int general_tasks_in_execution = 0;
@@ -84,22 +105,54 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
             MAIN_LOG(LOG_HEADER "Started worker #%d with PID %d.\n", i, worker->pid);
         }
 
+        _children = worker_array;
+
         volatile sig_atomic_t shutdown_requested = 0;
 
+        // Read data from both the main server and worker
         while(!shutdown_requested) {
-            // DEBUG_PRINT("[OPERATOR] New cycle.\n");
+            DEBUG_PRINT(LOG_HEADER "New cycle.\n");
 
+            // Read and discriminate process mark.
+            // char mark[PROCESS_MARK_LEN] = { 0 }; 
+            // // READ_PROCESS_MARK(pd[0], mark);
+            // SAFE_READ(pd[0], &mark, 2 * sizeof(char));
+
+            char* mark = read_process_mark(pd[0]);
+            
+            // DEBUG_PRINT(LOG_HEADER "Mark: %.2s\n", mark);
+            // DEBUG_PRINT(LOG_HEADER "Mark2: %d %d\n", mark[0], mark[1]);
+
+            switch (PROCESS_MARK_SOLVER(mark)) {
+                case 0: {
+                    // Shutdown request received.
+                    // shutdown_requested = 1;
+                    // break;
+                }
+                case MAIN_SERVER_PROCESS_MARK_DISCRIMINATOR: {
+                    MAIN_LOG(LOG_HEADER "Received message from Main Server Process.\n");
+                    break;
+                }
+                case WORKER_PROCESS_MARK_DISCRIMINATOR: {
+                    MAIN_LOG(LOG_HEADER "Received message from Worker Process.\n");
+                    break;
+                }
+            }
+
+            if (shutdown_requested) break;
+            
             CRITICAL_START
                 DATAGRAM_HEADER header = read_datagram_header(pd[0]);
             CRITICAL_END
 
             if (header.version == 0) {
-                // Datagram read fuck all. Ignore it.
+                // Read fuck all. Ignore it.
                 continue;
             } else if (header.version != DATAGRAM_VERSION) {
                 // Datagram not supported.
                 MAIN_LOG(LOG_HEADER "Received unsupported datagram with version %d:\n", header.version);
 
+                // TODO: Read until next Process Mark.
                 drain_fifo(pd[0]);
                 continue;
             }
@@ -108,8 +161,12 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
                 case DATAGRAM_MODE_EXECUTE_REQUEST: {
                     ExecuteRequestDatagram dg = read_partial_execute_request_datagram(pd[0], header);
 
+                    int id = 0;
+                    SAFE_READ(pd[0], &id, sizeof(int));
+
                     char* req_str = execute_request_datagram_to_string(dg, 1, 1);
                     MAIN_LOG(LOG_HEADER "Received execute request: %s\n", req_str);
+                    MAIN_LOG(LOG_HEADER "Task id: %d\n", id);
                     free(req_str);
                     break;
                 }
