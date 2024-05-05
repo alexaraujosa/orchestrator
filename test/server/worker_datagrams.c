@@ -20,15 +20,15 @@ int _cmp_worker_datagram_header(WORKER_DATAGRAM_HEADER dha, WORKER_DATAGRAM_HEAD
         && (dha.task_id == dhb.task_id);
 }
 
-int _cmp_worker_status_datagram(WorkerStatusDatagram dga, WorkerStatusDatagram dgb) {
+int _cmp_worker_status_datagram(WorkerStatusRequestDatagram dga, WorkerStatusRequestDatagram dgb) {
     return _cmp_worker_datagram_header(dga->header, dgb->header);
 }
 
-int _cmp_worker_execute_datagram(WorkerExecuteDatagram dga, WorkerExecuteDatagram dgb) {
+int _cmp_worker_execute_datagram(WorkerExecuteRequestDatagram dga, WorkerExecuteRequestDatagram dgb) {
     return _cmp_worker_datagram_header(dga->header, dgb->header);
 }
 
-int _cmp_worker_shutdown_datagram(WorkerShutdownDatagram dga, WorkerShutdownDatagram dgb) {
+int _cmp_worker_shutdown_datagram(WorkerShutdownRequestDatagram dga, WorkerShutdownRequestDatagram dgb) {
     return _cmp_worker_datagram_header(dga->header, dgb->header);
 }
 
@@ -48,11 +48,11 @@ void test_direct_create_worker_datagram() {
 
     #pragma region ========== WORKER STATUS DATAGRAM =======
     {
-        WORKER_STATUS_DATAGRAM dgc = { 0 };
+        WORKER_STATUS_REQUEST_DATAGRAM dgc = { 0 };
         dgc.header = create_worker_datagram_header();
-        dgc.header.mode = WORKER_DATAGRAM_MODE_STATUS;
+        dgc.header.mode = WORKER_DATAGRAM_MODE_STATUS_REQUEST;
 
-        WorkerStatusDatagram dg = create_worker_status_datagram();
+        WorkerStatusRequestDatagram dg = create_worker_status_request_datagram();
         ASSERT(
             _cmp_worker_status_datagram(&dgc, dg),
             "[WDH] Worker Status Datagram doesn't match control."
@@ -62,12 +62,12 @@ void test_direct_create_worker_datagram() {
 
     #pragma region ========== WORKER EXECUTE DATAGRAM =======
     {
-        WORKER_EXECUTE_DATAGRAM dgc = {
+        WORKER_EXECUTE_REQUEST_DATAGRAM dgc = {
             .header = create_worker_datagram_header()
         };
-        dgc.header.mode = WORKER_DATAGRAM_MODE_EXECUTE;
+        dgc.header.mode = WORKER_DATAGRAM_MODE_EXECUTE_REQUEST;
 
-        WorkerExecuteDatagram dg = create_worker_execute_datagram();
+        WorkerExecuteRequestDatagram dg = create_worker_execute_request_datagram();
         ASSERT(
             _cmp_worker_execute_datagram(&dgc, dg),
             "[WDH] Worker Execute Datagram doesn't match control."
@@ -77,12 +77,12 @@ void test_direct_create_worker_datagram() {
 
     #pragma region ========== WORKER SHUTDOWN DATAGRAM =======
     {
-        WORKER_SHUTDOWN_DATAGRAM dgc = {
+        WORKER_SHUTDOWN_REQUEST_DATAGRAM dgc = {
             .header = create_worker_datagram_header()
         };
-        dgc.header.mode = WORKER_DATAGRAM_MODE_SHUTDOWN;
+        dgc.header.mode = WORKER_DATAGRAM_MODE_SHUTDOWN_REQUEST;
 
-        WorkerShutdownDatagram dg = create_worker_shutdown_datagram();
+        WorkerShutdownRequestDatagram dg = create_worker_shutdown_request_datagram();
         ASSERT(
             _cmp_worker_shutdown_datagram(&dgc, dg),
             "[WDH] Worker Shutdown Datagram doesn't match control."
@@ -122,7 +122,7 @@ void test_read_worker_datagram(char* test_data_dir) {
         int status_fd = SAFE_OPEN(test_status_file, O_RDONLY, NULL);
         if (status_fd == -1) ERROR("[READ] Unable to open Worker Status Datagram test data file.")
 
-        WORKER_STATUS_DATAGRAM dgc = {
+        WORKER_STATUS_REQUEST_DATAGRAM dgc = {
             .header = {
                 .mode = 1,
                 .type = 2,
@@ -131,7 +131,7 @@ void test_read_worker_datagram(char* test_data_dir) {
         };
 
         WORKER_DATAGRAM_HEADER dh = read_worker_datagram_header(status_fd);
-        WorkerStatusDatagram dg = read_partial_worker_status_datagram(status_fd, dh);
+        WorkerStatusRequestDatagram dg = read_partial_worker_status_request_datagram(status_fd, dh);
         ASSERT(
             _cmp_worker_status_datagram(&dgc, dg),
             "[READ] [WDH] Worker Status Datagram doesn't match control."
@@ -145,7 +145,7 @@ void test_read_worker_datagram(char* test_data_dir) {
         int execute_fd = SAFE_OPEN(test_execute_file, O_RDONLY, NULL);
         if (execute_fd == -1) ERROR("[READ] Unable to open Worker Execute Datagram test data file.")
 
-        WORKER_EXECUTE_DATAGRAM dgc = {
+        WORKER_EXECUTE_REQUEST_DATAGRAM dgc = {
             .header = {
                 .mode = 1,
                 .type = 2,
@@ -155,7 +155,7 @@ void test_read_worker_datagram(char* test_data_dir) {
         };
 
         WORKER_DATAGRAM_HEADER dh = read_worker_datagram_header(execute_fd);
-        WorkerExecuteDatagram dg = read_partial_worker_execute_datagram(execute_fd, dh);
+        WorkerExecuteRequestDatagram dg = read_partial_worker_execute_request_datagram(execute_fd, dh);
         ASSERT(
             _cmp_worker_execute_datagram(&dgc, dg),
             "[READ] [WDH] Worker Execute Datagram doesn't match control."
@@ -169,7 +169,7 @@ void test_read_worker_datagram(char* test_data_dir) {
         int shutdown_fd = SAFE_OPEN(test_shutdown_file, O_RDONLY, NULL);
         if (shutdown_fd == -1) ERROR("[READ] Unable to open Worker Shutdown Datagram test data file.")
 
-        WORKER_SHUTDOWN_DATAGRAM dgc = {
+        WORKER_SHUTDOWN_REQUEST_DATAGRAM dgc = {
             .header = {
                 .mode = 1,
                 .type = 2,
@@ -178,7 +178,7 @@ void test_read_worker_datagram(char* test_data_dir) {
         };
 
         WORKER_DATAGRAM_HEADER dh = read_worker_datagram_header(shutdown_fd);
-        WorkerShutdownDatagram dg = read_partial_worker_shutdown_datagram(shutdown_fd, dh);
+        WorkerShutdownRequestDatagram dg = read_partial_worker_shutdown_request_datagram(shutdown_fd, dh);
         ASSERT(
             _cmp_worker_shutdown_datagram(&dgc, dg),
             "[READ] [WDH] Worker Shutdown Datagram doesn't match control."
