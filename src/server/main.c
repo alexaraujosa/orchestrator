@@ -86,7 +86,7 @@ int main(int argc, char const *argv[]) {
 
             int _main_pid = getpid();
 
-            OPERATOR operator = start_operator(atoi(argv[2]), history_file_path);
+            OPERATOR operator = start_operator(atoi(argv[2]), output_folder, history_file_path);
             if (operator.pid == 0) {
                 if (_main_pid != getpid()) {
                     _exit(0);
@@ -160,13 +160,13 @@ int main(int argc, char const *argv[]) {
 
                 printf(LOG_HEADER "Task with identifier %d queued.\n", id);
 
-                char* task_name = isnprintf(TASK "%d", id);
-                char* task_path = join_paths(2, output_folder, task_name);
-                int task_fd = SAFE_OPEN(task_path, O_WRONLY | O_CREAT, 0600);
+                // char* task_name = isnprintf(TASK "%d", id);
+                // char* task_path = join_paths(2, output_folder, task_name);
+                // int task_fd = SAFE_OPEN(task_path, O_WRONLY | O_CREAT, 0600);
 
-                close(task_fd);
-                free(task_path);
-                free(task_name);
+                // close(task_fd);
+                // free(task_path);
+                // free(task_name);
 
                 DEBUG_PRINT(LOG_HEADER "Execute Request finalized.\n");
             } else if(header.mode == DATAGRAM_MODE_STATUS_REQUEST) {

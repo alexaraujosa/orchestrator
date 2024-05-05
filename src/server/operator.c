@@ -165,7 +165,7 @@ void execute_task(OperatorWorkerEntry worker, OperatorTask task) {
 }
 #pragma endregion
 
-OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
+OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_file_path) {
     #define ERR (OPERATOR){ 0 }
 
     int pd[2];
@@ -194,7 +194,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
         int workers_busy = 0;
 
         for(int i = 0 ; i < num_parallel_tasks + 1 ; i++) {
-            Worker worker = start_worker(pd[1], i);
+            Worker worker = start_worker(pd[1], i, output_dir);
 
             OperatorWorkerEntry entry = create_operator_worker_entry(worker);
             g_array_insert_val(worker_array, i, entry);
@@ -263,6 +263,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
                             free(req_str);
                             
                             WorkerExecuteRequestDatagram dg = create_worker_execute_request_datagram();
+                            dg->header.task_id = id;
                             memcpy(dg->data, request->data, EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN);
 
                             OperatorTask task = create_task(
