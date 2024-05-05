@@ -150,10 +150,10 @@ int main(int argc, char const *argv[]) {
                 response->taskid = ++id;
                 SAFE_WRITE(client_fifo_fd, response, sizeof(EXECUTE_RESPONSE_DATAGRAM));
 
-                // WRITE_PROCESS_MARK(operator_pd, MAIN_SERVER_PROCESS_MARK);
-                char mark_buf[] = MAIN_SERVER_PROCESS_MARK;
-                printf(LOG_HEADER "MARK: %d %d\n", mark_buf[0], mark_buf[1]);
-                SAFE_WRITE(operator_pd, &mark_buf, 2 * sizeof(char));
+                WRITE_PROCESS_MARK(operator_pd, MAIN_SERVER_PROCESS_MARK);
+                // char mark_buf[] = MAIN_SERVER_PROCESS_MARK;
+                // printf(LOG_HEADER "MARK: %d %d\n", mark_buf[0], mark_buf[1]);
+                // SAFE_WRITE(operator_pd, &mark_buf, 2 * sizeof(char));
 
                 SAFE_WRITE(operator_pd, request_execute, sizeof(EXECUTE_REQUEST_DATAGRAM));
                 SAFE_WRITE(operator_pd, &id, sizeof(int));

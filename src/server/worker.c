@@ -25,7 +25,16 @@
 #define READ 0
 #define WRITE 1
 
-Worker start_worker() {
+void worker_signal_sigsegv(int signum) {
+    if (signum != SIGSEGV) return;
+
+    int pid = getpid();
+
+    MAIN_LOG(LOG_HEADER_PID "Segmentation fault.\n", pid);
+    _exit(1);
+}
+
+Worker start_worker(int operator_pd) {
     #define ERR NULL
     ERROR_HEADER
     int _err_pid = 0;
@@ -57,6 +66,14 @@ Worker start_worker() {
                 case WORKER_DATAGRAM_MODE_EXECUTE: {
                     WorkerExecuteDatagram dg = read_partial_worker_execute_datagram(pfd[READ], dh);
                     MAIN_LOG(LOG_HEADER_PID "Received execute request.\n", pid);
+                    DEBUG_PRINT(
+                        LOG_HEADER_PID "Mode: %d, Type: %d, Id: %d, Data: '%s'\n", 
+                        pid,
+                        dg->header.mode, 
+                        dg->header.type, 
+                        dg->header.task_id, 
+                        (char*)(dg->data)
+                    );
                     break;
                 }
                 case WORKER_DATAGRAM_MODE_SHUTDOWN: {
