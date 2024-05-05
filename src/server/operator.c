@@ -71,7 +71,7 @@ OperatorWorkerEntry create_operator_worker_entry(Worker worker) {
     #undef ERR
 }
 
-WorkerArray create_workers_array() { // len == num_parallel_tasks + 1 (1 for status)
+static inline WorkerArray create_workers_array() { // len == num_parallel_tasks + 1 (1 for status)
     return g_array_new(FALSE, FALSE, sizeof(OperatorWorkerEntry));
 }
 
@@ -82,6 +82,10 @@ OperatorWorkerEntry get_idle_worker(WorkerArray workers) {
     }
 
     return NULL;
+}
+
+static inline OperatorWorkerEntry get_worker_by_id(WorkerArray workers, int worker_id) {
+    return g_array_index(workers, OperatorWorkerEntry, worker_id);
 }
 #pragma endregion
 
@@ -98,16 +102,16 @@ typedef struct operator_task {
 typedef GQueue* RequestQueue;
 
 #pragma region ======= FUNCTION PREDICATES =======
-gint request_queue_compare_fifo(gconstpointer a, gconstpointer b, gpointer user_data) {
+static inline gint request_queue_compare_fifo(gconstpointer a, gconstpointer b, gpointer user_data) {
     return ((OperatorTask)a)->start - ((OperatorTask)b)->start;
 }
 
-gint find_queue_task_by_id(gconstpointer src, gconstpointer ctrl) {
-    return ((OperatorTask)src)->id_task == (int)ctrl;
+static inline gint find_queue_task_by_id(gconstpointer src, gconstpointer ctrl) {
+    return ((OperatorTask)src)->id_task == *((int*)ctrl);
 }
 #pragma endregion
 
-RequestQueue create_request_queue() {
+static inline RequestQueue create_request_queue() {
     return g_queue_new();
 }
 
@@ -123,11 +127,11 @@ OperatorTask create_task(int id_task, int speculate_time, WorkerDatagram datagra
     return execute_task;
 }
 
-OperatorTask get_next_task(RequestQueue request_waiting_queue) {
+static inline OperatorTask get_next_task(RequestQueue request_waiting_queue) {
     return (OperatorTask)g_queue_pop_head(request_waiting_queue);
 }
 
-void add_task_to_backlog(RequestQueue request_waiting_queue, GCompareDataFunc comparator, OperatorTask task) {
+static inline void add_task_to_backlog(RequestQueue request_waiting_queue, GCompareDataFunc comparator, OperatorTask task) {
     g_queue_insert_sorted(request_waiting_queue, task, comparator, NULL);
 }
 
@@ -139,8 +143,14 @@ OperatorTask prepare_task_from_queue(RequestQueue request_waiting_queue, Request
 }
 
 void complete_task_from_queue(RequestQueue active_request_queue, int task_id) {
-    int ind = g_queue_find_custom(active_request_queue, &task_id, find_queue_task_by_id);
-    g_queue_pop_nth(active_request_queue, ind);
+    GList* task = g_queue_find_custom(active_request_queue, &task_id, find_queue_task_by_id);
+
+    if (task != NULL) {
+        int ind = g_queue_index(active_request_queue, task->data);
+        DEBUG_PRINT(LOG_HEADER "CTFQ Index: %d\n", ind);
+
+        g_queue_pop_nth(active_request_queue, ind);
+    }
 }
 
 void execute_task(OperatorWorkerEntry worker, OperatorTask task) {
@@ -175,7 +185,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
     pid_t pid = fork();
     if(pid == 0) {
         MAIN_LOG(LOG_HEADER "Operator started.\n");
-        close(pd[1]);
+        // close(pd[1]);
         
         #pragma region ======= WORKER INITIALIZATION =======
         MAIN_LOG(LOG_HEADER "Stating %d Worker Processes.\n", num_parallel_tasks + 1);
@@ -184,7 +194,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
         int workers_busy = 0;
 
         for(int i = 0 ; i < num_parallel_tasks + 1 ; i++) {
-            Worker worker = start_worker(pd[1]);
+            Worker worker = start_worker(pd[1], i);
 
             OperatorWorkerEntry entry = create_operator_worker_entry(worker);
             g_array_insert_val(worker_array, i, entry);
@@ -214,7 +224,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
             char* mark = read_process_mark(pd[0]);
             if (shutdown_requested) break;
 
-            // DEBUG_PRINT(LOG_HEADER "Mark: %d %d\n", mark[0], mark[1]);
+            DEBUG_PRINT(LOG_HEADER "Mark: %d %d\n", mark[0], mark[1]);
 
             switch (PROCESS_MARK_SOLVER(mark)) {
                 case 0: {
@@ -252,14 +262,14 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
                             MAIN_LOG(LOG_HEADER "Task id: %d\n", id);
                             free(req_str);
                             
-                            WorkerExecuteDatagram dg = create_worker_execute_datagram();
+                            WorkerExecuteRequestDatagram dg = create_worker_execute_request_datagram();
                             memcpy(dg->data, request->data, EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN);
 
                             OperatorTask task = create_task(
                                 id, 
                                 request->time, 
                                 (WorkerDatagram)dg, 
-                                sizeof(WORKER_EXECUTE_DATAGRAM)
+                                sizeof(WORKER_EXECUTE_REQUEST_DATAGRAM)
                             );
 
                             add_task_to_backlog(
@@ -283,6 +293,38 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
                 }
                 case WORKER_PROCESS_MARK_DISCRIMINATOR: {
                     MAIN_LOG(LOG_HEADER "Received message from Worker Process.\n");
+
+                    CRITICAL_START
+                        WORKER_DATAGRAM_HEADER header = read_worker_datagram_header(pd[0]);
+                    CRITICAL_END
+
+                    if (header.mode == WORKER_DATAGRAM_MODE_NONE) {
+                        // Read fuck all. Ignore it.
+                        continue;
+                    }
+
+                    switch (header.mode) {
+                        case WORKER_DATAGRAM_MODE_COMPLETION_RESPONSE: {
+                            WorkerCompletionResponseDatagram res = read_partial_worker_completion_response_datagram(
+                                pd[0], 
+                                header
+                            );
+
+                            OperatorWorkerEntry entry = get_worker_by_id(worker_array, res->worker_id);
+                            complete_task_from_queue(active_request_queue, res->header.task_id);
+                            entry->status = WORKER_STATUS_IDLE;
+                            workers_busy--;
+
+                            MAIN_LOG(LOG_HEADER "Worker #%d (@%d) finished.\n", res->worker_id, entry->worker->pid);
+                            break;
+                        }
+                        default: {
+                            // We should never recieved any requests from the workers.
+                            // If we recieve one, we should ignore them.
+                            drain_fifo(pd[0]);
+                            continue;
+                        }
+                    }
                     break;
                 }
             }
@@ -291,11 +333,12 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
             MAIN_LOG(LOG_HEADER "Attempting to dispatch queued tasks.\n");
 
             DEBUG_PRINT(
-                LOG_HEADER "Tasks in backlog: %d\nTasks in execution: %d\n", 
+                LOG_HEADER "Tasks in backlog: %d | Tasks in execution: %d\n", 
                 request_waiting_queue->length, 
                 active_request_queue->length
             );
 
+            DEBUG_PRINT(LOG_HEADER "Workers available: %d/%d\n", num_parallel_tasks - workers_busy, num_parallel_tasks);
             if (request_waiting_queue->length > 0) {
                 // TODO: Dispatch status tasks
 
@@ -305,12 +348,18 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
                 }
 
                 OperatorWorkerEntry entry = get_idle_worker(worker_array);
-                OperatorTask task = get_next_task(request_waiting_queue);
+                OperatorTask task = prepare_task_from_queue(request_waiting_queue, active_request_queue);
+
                 execute_task(entry, task);
+                entry->status = WORKER_STATUS_BUSY;
+                workers_busy++;
+            } else {
+                DEBUG_PRINT(LOG_HEADER "No tasks queued.\n");
             }
         }
 
         // Handle graceful shutdown.
+        #pragma region ======= GRACEFUL SHUTDOWN =======
         MAIN_LOG(LOG_HEADER "Shutting down operator...\n");
 
         // TODO: Suicide Workers
@@ -322,8 +371,8 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
                 entry->worker->pid
             );
 
-            WorkerShutdownDatagram request = create_worker_shutdown_datagram();
-            SAFE_WRITE(entry->worker->pipe_write, request, sizeof(WORKER_SHUTDOWN_DATAGRAM));
+            WorkerShutdownRequestDatagram request = create_worker_shutdown_request_datagram();
+            SAFE_WRITE(entry->worker->pipe_write, request, sizeof(WORKER_SHUTDOWN_REQUEST_DATAGRAM));
 
             int status;
             int elapsed = 0;
@@ -368,6 +417,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* history_file_path) {
 
         MAIN_LOG(LOG_HEADER "Successfully closed operator.\n");
         _exit(0);
+        #pragma endregion
     } else {
         DEBUG_PRINT(LOG_HEADER "Server continue.\n");
 
