@@ -47,4 +47,13 @@ char* isnprintf(const char *format, ...);
  */
 char* bytes_to_hex_string(char* bytes, int len, char separator);
 
+/**
+ * @brief Trimms the whitespace at the head and tail of a string.
+ * 
+ * @param orig The original string to be trimmed.
+ * 
+ * @return The original string, without the whitespace at the head and tail.
+ */
+char* trim(char* orig);
+
 #endif

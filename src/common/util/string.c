@@ -1,3 +1,5 @@
+#define _DEFAULT_SOURCE
+
 #include "common/util/string.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,5 +47,15 @@ char* bytes_to_hex_string(char* bytes, int len, char separator) {
 
     if (separator) pout[-1] = 0;
 
+    return str;
+}
+
+char* trim(char* orig) {
+    char* str = strdup(orig);
+    char *ptr = NULL;
+
+    while (*str == ' ') str++;
+    ptr = str + strlen(str) - 1;
+    while (*ptr == ' '){ *ptr = '\0' ; ptr--; };
     return str;
 }
