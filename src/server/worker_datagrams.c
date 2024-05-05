@@ -25,23 +25,23 @@ WORKER_DATAGRAM_HEADER read_worker_datagram_header(int fd) {
 #pragma endregion
 
 
-#pragma region ======= STATUS =======
-WorkerStatusDatagram create_worker_status_datagram() {
+#pragma region ======= STATUS REQUEST =======
+WorkerStatusRequestDatagram create_worker_status_request_datagram() {
     #define ERR NULL
 
-    WorkerStatusDatagram dg = SAFE_ALLOC(WorkerStatusDatagram, sizeof(WORKER_STATUS_DATAGRAM));
+    WorkerStatusRequestDatagram dg = SAFE_ALLOC(WorkerStatusRequestDatagram, sizeof(WORKER_STATUS_REQUEST_DATAGRAM));
     dg->header = create_worker_datagram_header();
-    dg->header.mode = WORKER_DATAGRAM_MODE_STATUS;
+    dg->header.mode = WORKER_DATAGRAM_MODE_STATUS_REQUEST;
 
     return dg;
 
     #undef ERR
 }
 
-WorkerStatusDatagram read_partial_worker_status_datagram(int fd, WORKER_DATAGRAM_HEADER header) {
+WorkerStatusRequestDatagram read_partial_worker_status_request_datagram(int fd, WORKER_DATAGRAM_HEADER header) {
     #define ERR NULL
     
-    WorkerStatusDatagram dg = SAFE_ALLOC(WorkerStatusDatagram, sizeof(WORKER_STATUS_DATAGRAM));
+    WorkerStatusRequestDatagram dg = SAFE_ALLOC(WorkerStatusRequestDatagram, sizeof(WORKER_STATUS_REQUEST_DATAGRAM));
     dg->header = header;
 
     return dg;
@@ -50,13 +50,13 @@ WorkerStatusDatagram read_partial_worker_status_datagram(int fd, WORKER_DATAGRAM
 #pragma endregion
 
 
-#pragma region ======= EXECUTE =======
-WorkerExecuteDatagram create_worker_execute_datagram() {
+#pragma region ======= EXECUTE REQUEST =======
+WorkerExecuteRequestDatagram create_worker_execute_request_datagram() {
     #define ERR NULL
 
-    WorkerExecuteDatagram dg = SAFE_ALLOC(WorkerExecuteDatagram, sizeof(WORKER_EXECUTE_DATAGRAM));
+    WorkerExecuteRequestDatagram dg = SAFE_ALLOC(WorkerExecuteRequestDatagram, sizeof(WORKER_EXECUTE_REQUEST_DATAGRAM));
     dg->header = create_worker_datagram_header();
-    dg->header.mode = WORKER_DATAGRAM_MODE_EXECUTE;
+    dg->header.mode = WORKER_DATAGRAM_MODE_EXECUTE_REQUEST;
 
     return dg;
 
@@ -64,16 +64,16 @@ WorkerExecuteDatagram create_worker_execute_datagram() {
 }
 
 
-WorkerExecuteDatagram read_partial_worker_execute_datagram(int fd, WORKER_DATAGRAM_HEADER header) {
+WorkerExecuteRequestDatagram read_partial_worker_execute_request_datagram(int fd, WORKER_DATAGRAM_HEADER header) {
     #define ERR NULL
     
-    WorkerExecuteDatagram dg = SAFE_ALLOC(WorkerExecuteDatagram, sizeof(WORKER_EXECUTE_DATAGRAM));
+    WorkerExecuteRequestDatagram dg = SAFE_ALLOC(WorkerExecuteRequestDatagram, sizeof(WORKER_EXECUTE_REQUEST_DATAGRAM));
     dg->header = header;
 
     // SAFE_READ(
     //     fd, 
     //     (((void*)dg) + sizeof(WORKER_DATAGRAM_HEADER)), 
-    //     sizeof(WORKER_EXECUTE_DATAGRAM) - sizeof(WORKER_DATAGRAM_HEADER)
+    //     sizeof(WORKER_EXECUTE_REQUEST_DATAGRAM) - sizeof(WORKER_DATAGRAM_HEADER)
     // );
 
     SAFE_READ(fd, dg->data, sizeof(dg->data) - 1);
@@ -84,13 +84,13 @@ WorkerExecuteDatagram read_partial_worker_execute_datagram(int fd, WORKER_DATAGR
 #pragma endregion
 
 
-#pragma region ======= SHUTDOWN =======
-WorkerShutdownDatagram create_worker_shutdown_datagram() {
+#pragma region ======= SHUTDOWN REQUEST =======
+WorkerShutdownRequestDatagram create_worker_shutdown_request_datagram() {
     #define ERR NULL
 
-    WorkerShutdownDatagram dg = SAFE_ALLOC(WorkerShutdownDatagram, sizeof(WORKER_SHUTDOWN_DATAGRAM));
+    WorkerShutdownRequestDatagram dg = SAFE_ALLOC(WorkerShutdownRequestDatagram, sizeof(WORKER_SHUTDOWN_REQUEST_DATAGRAM));
     dg->header = create_worker_datagram_header();
-    dg->header.mode = WORKER_DATAGRAM_MODE_SHUTDOWN;
+    dg->header.mode = WORKER_DATAGRAM_MODE_SHUTDOWN_REQUEST;
 
     return dg;
 
@@ -98,10 +98,10 @@ WorkerShutdownDatagram create_worker_shutdown_datagram() {
 }
 
 
-WorkerShutdownDatagram read_partial_worker_shutdown_datagram(int fd, WORKER_DATAGRAM_HEADER header) {
+WorkerShutdownRequestDatagram read_partial_worker_shutdown_request_datagram(int fd, WORKER_DATAGRAM_HEADER header) {
     #define ERR NULL
     
-    WorkerShutdownDatagram dg = SAFE_ALLOC(WorkerShutdownDatagram, sizeof(WORKER_SHUTDOWN_DATAGRAM));
+    WorkerShutdownRequestDatagram dg = SAFE_ALLOC(WorkerShutdownRequestDatagram, sizeof(WORKER_SHUTDOWN_REQUEST_DATAGRAM));
     dg->header = header;
 
     return dg;
@@ -109,4 +109,33 @@ WorkerShutdownDatagram read_partial_worker_shutdown_datagram(int fd, WORKER_DATA
 }
 #pragma endregion
 
+#pragma region ======= COMPLETION RESPONSE =======
+WorkerCompletionResponseDatagram create_worker_completion_response_datagram() {
+    #define ERR NULL
 
+    WorkerCompletionResponseDatagram dg = SAFE_ALLOC(WorkerCompletionResponseDatagram, sizeof(WORKER_COMPLETION_RESPONSE_DATAGRAM));
+    dg->header = create_worker_datagram_header();
+    dg->header.mode = WORKER_DATAGRAM_MODE_COMPLETION_RESPONSE;
+
+    return dg;
+
+    #undef ERR
+}
+
+
+WorkerCompletionResponseDatagram read_partial_worker_completion_response_datagram(int fd, WORKER_DATAGRAM_HEADER header) {
+    #define ERR NULL
+    
+    WorkerCompletionResponseDatagram dg = SAFE_ALLOC(WorkerCompletionResponseDatagram, sizeof(WORKER_COMPLETION_RESPONSE_DATAGRAM));
+    dg->header = header;
+
+    SAFE_READ(
+        fd, 
+        (((void*)dg) + sizeof(WORKER_DATAGRAM_HEADER)), 
+        sizeof(WORKER_COMPLETION_RESPONSE_DATAGRAM) - sizeof(WORKER_DATAGRAM_HEADER)
+    );
+
+    return dg;
+    #undef ERR
+}
+#pragma endregion

@@ -2,6 +2,7 @@
 #define SERVER_PROCESS_MARK_H
 
 #include "common/io/io.h"
+#include "common/util/alloc.h"
 
 #define PROCESS_MARK_LEN 2
 
@@ -39,6 +40,7 @@ static inline char* read_process_mark(int fd) {
 
     INIT_CRITICAL_MARK
     SET_CRITICAL_MARK(1);
+    (void)CRITICAL_MARK;
     
     char* mark_buf = SAFE_ALLOC(char*, 2 * sizeof(char));
     SAFE_READ(fd, mark_buf, 2 * sizeof(char));

@@ -6,9 +6,10 @@
 
 enum WorkerDatagramMode {
     WORKER_DATAGRAM_MODE_NONE,
-    WORKER_DATAGRAM_MODE_STATUS,
-    WORKER_DATAGRAM_MODE_EXECUTE,
-    WORKER_DATAGRAM_MODE_SHUTDOWN,
+    WORKER_DATAGRAM_MODE_STATUS_REQUEST,
+    WORKER_DATAGRAM_MODE_EXECUTE_REQUEST,
+    WORKER_DATAGRAM_MODE_SHUTDOWN_REQUEST,
+    WORKER_DATAGRAM_MODE_COMPLETION_RESPONSE
 };
 
 typedef struct worker_datagram_header {
@@ -21,21 +22,26 @@ typedef struct worker_datagram_header {
  * @brief Generic datagram pointer type, compatible with every datagram.
  */
 typedef struct worker_datagram {
-    WORKER_DATAGRAM_HEADER header; // Header for this datagram. Mode must be set to WORKER_DATAGRAM_MODE_STATUS.
+    WORKER_DATAGRAM_HEADER header;
 } *WorkerDatagram;
 
-typedef struct worker_status_datagram {
-    WORKER_DATAGRAM_HEADER header; // Header for this datagram. Mode must be set to WORKER_DATAGRAM_MODE_STATUS.
-} WORKER_STATUS_DATAGRAM, *WorkerStatusDatagram;
+typedef struct worker_status_request_datagram {
+    WORKER_DATAGRAM_HEADER header; // Header for this datagram. Mode must be set to WORKER_DATAGRAM_MODE_STATUS_REQUEST.
+} WORKER_STATUS_REQUEST_DATAGRAM, *WorkerStatusRequestDatagram;
 
-typedef struct worker_execute_datagram {
-    WORKER_DATAGRAM_HEADER header; // Header for this datagram. Mode must be set to WORKER_DATAGRAM_MODE_EXECUTE.
+typedef struct worker_execute_request_datagram {
+    WORKER_DATAGRAM_HEADER header; // Header for this datagram. Mode must be set to WORKER_DATAGRAM_MODE_EXECUTE_REQUEST.
     char data[EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN + 1]; // The task to be executed.
-} WORKER_EXECUTE_DATAGRAM, *WorkerExecuteDatagram;
+} WORKER_EXECUTE_REQUEST_DATAGRAM, *WorkerExecuteRequestDatagram;
 
-typedef struct worker_shutdown_datagram {
-    WORKER_DATAGRAM_HEADER header; // Header for this datagram. Mode must be set to WORKER_DATAGRAM_MODE_SHUTDOWN.
-} WORKER_SHUTDOWN_DATAGRAM, *WorkerShutdownDatagram;
+typedef struct worker_shutdown_request_datagram {
+    WORKER_DATAGRAM_HEADER header; // Header for this datagram. Mode must be set to WORKER_DATAGRAM_MODE_SHUTDOWN_REQUEST.
+} WORKER_SHUTDOWN_REQUEST_DATAGRAM, *WorkerShutdownRequestDatagram;
+
+typedef struct worker_completion_response_datagram {
+    WORKER_DATAGRAM_HEADER header; // Header for this datagram. Mode must be set to WORKER_DATAGRAM_MODE_COMPLETION_RESPONSE.
+    uint8_t worker_id;
+} WORKER_COMPLETION_RESPONSE_DATAGRAM, *WorkerCompletionResponseDatagram;
 
 /**
  * @brief Creates a new empty Worker Datagram Header.
@@ -49,40 +55,60 @@ WORKER_DATAGRAM_HEADER create_worker_datagram_header();
 WORKER_DATAGRAM_HEADER read_worker_datagram_header(int fd);
 
 /**
- * @brief Creates a new empty Worker Status Datagram.
+ * @brief Creates a new empty Worker Status Request Datagram.
  */
-WorkerStatusDatagram create_worker_status_datagram();
+WorkerStatusRequestDatagram create_worker_status_request_datagram();
 
 /**
- * @brief Reads a Worker Status Datagram from a file descriptor, or NULL if it fails. This version should be called after
- * reading the header of a datagram, for distinguishing the datagram mode.
+ * @brief Reads a Worker Status Request Datagram from a file descriptor, or NULL if it fails. This version should be 
+ * called after reading the header of a datagram, for distinguishing the datagram mode.
  * 
  * @param fd     The file descriptor to read.
  * @param header The already read header.
  */
-WorkerStatusDatagram read_partial_worker_status_datagram(int fd, WORKER_DATAGRAM_HEADER header);
-
-WorkerExecuteDatagram create_worker_execute_datagram();
+WorkerStatusRequestDatagram read_partial_worker_status_request_datagram(int fd, WORKER_DATAGRAM_HEADER header);
 
 /**
- * @brief Reads a Worker Execute Datagram from a file descriptor, or NULL if it fails. This version should be called after
- * reading the header of a datagram, for distinguishing the datagram mode.
+ * @brief Creates a new empty Worker Execute Request Datagram.
+ */
+WorkerExecuteRequestDatagram create_worker_execute_request_datagram();
+
+/**
+ * @brief Reads a Worker Execute Request Datagram from a file descriptor, or NULL if it fails. This version should be 
+ * called after reading the header of a datagram, for distinguishing the datagram mode.
  * 
  * @param fd     The file descriptor to read.
  * @param header The already read header.
  */
-WorkerExecuteDatagram read_partial_worker_execute_datagram(int fd, WORKER_DATAGRAM_HEADER header);
-
-WorkerShutdownDatagram create_worker_shutdown_datagram();
+WorkerExecuteRequestDatagram read_partial_worker_execute_request_datagram(int fd, WORKER_DATAGRAM_HEADER header);
 
 /**
- * @brief Reads a Worker Shutdown Datagram from a file descriptor, or NULL if it fails. This version should be called after
- * reading the header of a datagram, for distinguishing the datagram type.
+ * @brief Creates a new empty Worker Shutdown Request Datagram.
+ */
+WorkerShutdownRequestDatagram create_worker_shutdown_request_datagram();
+
+/**
+ * @brief Reads a Worker Shutdown Request Datagram from a file descriptor, or NULL if it fails. This version should be 
+ * called after reading the header of a datagram, for distinguishing the datagram type.
  * 
  * @param fd     The file descriptor to read.
  * @param header The already read header.
  */
-WorkerShutdownDatagram read_partial_worker_shutdown_datagram(int fd, WORKER_DATAGRAM_HEADER header);
+WorkerShutdownRequestDatagram read_partial_worker_shutdown_request_datagram(int fd, WORKER_DATAGRAM_HEADER header);
+
+/**
+ * @brief Creates a new empty Worker Completion Response Datagram.
+ */
+WorkerCompletionResponseDatagram create_worker_completion_response_datagram();
+
+/**
+ * @brief Reads a Worker Completion Response Datagram from a file descriptor, or NULL if it fails. This version should be 
+ * called after reading the header of a datagram, for distinguishing the datagram type.
+ * 
+ * @param fd     The file descriptor to read.
+ * @param header The already read header.
+ */
+WorkerCompletionResponseDatagram read_partial_worker_completion_response_datagram(int fd, WORKER_DATAGRAM_HEADER header);
 
 
 #endif
