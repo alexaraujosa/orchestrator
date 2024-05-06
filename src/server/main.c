@@ -86,7 +86,7 @@ int main(int argc, char const *argv[]) {
 
             int _main_pid = getpid();
 
-            OPERATOR operator = start_operator(atoi(argv[2]), output_folder, history_file_path);
+            OPERATOR operator = start_operator(atoi(argv[2]), output_folder, history_file_path, (char*) argv[3]);
             if (operator.pid == 0) {
                 if (_main_pid != getpid()) {
                     _exit(0);

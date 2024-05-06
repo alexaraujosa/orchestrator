@@ -71,6 +71,6 @@ char* task_history_entry_to_string(Task_history_entry history_entry);
 /**
  * @brief Starts a new operator process.
  */
-OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_file_path);
+OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_file_path, char* escalation_policy);
 
 #endif

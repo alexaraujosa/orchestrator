@@ -22,6 +22,7 @@
 #define LOG_HEADER "[OPERATOR] "
 #define SHUTDOWN_TIMEOUT 1000
 #define SHUTDOWN_TIMEOUT_INTERVAL 10
+#define TASK_SPECULATE_TIME 500
 
 /**
  * @brief Represents the current status of a Worker.
@@ -102,8 +103,38 @@ typedef struct operator_task {
 typedef GQueue* RequestQueue;
 
 #pragma region ======= FUNCTION PREDICATES =======
-static inline gint request_queue_compare_fifo(gconstpointer a, gconstpointer b, gpointer user_data) {
+static inline gint request_queue_compare_fifo(gconstpointer a, gconstpointer b) {
     return ((OperatorTask)a)->start - ((OperatorTask)b)->start;
+}
+
+static inline gint request_queue_compare_sjb(gconstpointer a, gconstpointer b) {
+    OperatorTask task_a = (OperatorTask)a;
+    OperatorTask task_b = (OperatorTask)b;
+
+    if(task_a->speculate_time < task_b->speculate_time) return -1;
+    if(task_a->speculate_time > task_b->speculate_time) return  1;
+
+    return 0;
+}
+
+static inline gint request_queue_compare_ljb(gconstpointer a, gconstpointer b) {
+    OperatorTask task_a = (OperatorTask)a;
+    OperatorTask task_b = (OperatorTask)b;
+
+    if(task_a->speculate_time < task_b->speculate_time) return  1;
+    if(task_a->speculate_time > task_b->speculate_time) return -1;
+
+    return 0;
+}
+
+static inline gint request_queue_compare_certain(gconstpointer a, gconstpointer b) {
+    OperatorTask task_a = (OperatorTask)a;
+    OperatorTask task_b = (OperatorTask)b;
+
+    if(abs(TASK_SPECULATE_TIME - task_a->speculate_time) < abs(TASK_SPECULATE_TIME - task_b->speculate_time)) return  -1;
+    if(abs(TASK_SPECULATE_TIME - task_a->speculate_time) > abs(TASK_SPECULATE_TIME - task_b->speculate_time)) return   1;
+
+    return 0;
 }
 
 static inline gint find_queue_task_by_id(gconstpointer src, gconstpointer ctrl) {
@@ -165,11 +196,24 @@ void execute_task(OperatorWorkerEntry worker, OperatorTask task) {
 }
 #pragma endregion
 
-OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_file_path) {
+void printer(RequestQueue queue) {
+    for(guint i = 0 ; i < queue->length ; i++) {
+        OperatorTask task = g_queue_peek_nth(queue, i);
+        DEBUG_PRINT("[Task %d] Time: %d\n", i, task->speculate_time);
+    }
+}
+
+OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_file_path, char* escalation_policy) {
     #define ERR (OPERATOR){ 0 }
 
     int pd[2];
     pipe(pd); 
+
+    void* escalation_policy_comparator;
+    if(!strcmp(escalation_policy, "fifo")) escalation_policy_comparator = request_queue_compare_fifo;
+    else if(!strcmp(escalation_policy, "sjb")) escalation_policy_comparator = request_queue_compare_sjb;
+    else if(!strcmp(escalation_policy, "ljb")) escalation_policy_comparator = request_queue_compare_ljb;
+    else escalation_policy_comparator = request_queue_compare_certain;
 
     INIT_CRITICAL_MARK
     #define CRITICAL_START SET_CRITICAL_MARK(1);
@@ -275,7 +319,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
 
                             add_task_to_backlog(
                                 request_waiting_queue, 
-                                request_queue_compare_fifo,
+                                escalation_policy_comparator,
                                 task
                             );
                             break;
