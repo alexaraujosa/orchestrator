@@ -14,12 +14,16 @@
 #include "server/process_mark.h"
 #include "common/util/alloc.h"
 #include "common/util/string.h"
+#include "common/util/parser.h"
+#include "common/util/mysystem.h"
 #include "common/error.h"
+#include "common/io/fifo.h"
 #include "common/io/io.h"
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 #define LOG_HEADER "[WORKER] "
 #define LOG_HEADER_PID "[WORKER@%d] "
@@ -35,7 +39,90 @@ void worker_signal_sigsegv(int signum) {
     _exit(1);
 }
 
-Worker start_worker(int operator_pd, int worker_id) {
+int run_task(char* input, char* output_file) {
+    int pid = getpid();
+    DEBUG_PRINT(LOG_HEADER_PID "Running command '%s'\n                 - Outputting to %s\n", pid, input, output_file);
+
+    Tokens cmds = tokenize_char_delim(input, 16, "|");
+    pid_t pids[cmds->len];
+
+    // Backup STDOUT and STDERR
+    int old_stdout = dup(STDOUT_FILENO);
+    int old_stderr = dup(STDERR_FILENO);
+
+    // Create and open the output file
+    int task_fd = SAFE_OPEN(output_file, O_WRONLY | O_CREAT, 0644);
+
+    // Redirect STDOUT and STDERR to output file.
+    dup2(task_fd, STDOUT_FILENO);
+    dup2(task_fd, STDERR_FILENO);
+
+    int pfds[cmds->len][2];
+    for (int i = 0; i < cmds->len; i++) {
+        char* tcmd = trim(cmds->data[i]);
+
+        int pfd[2];
+        if (i != cmds->len - 1) {
+            if (pipe(pfd) != 0) {
+                perror("pipe");
+                return 1;
+            }
+
+            pfds[i][0] = pfd[0];
+            pfds[i][1] = pfd[1];
+        }
+
+        int pid = fork();
+        if (pid == 0) {
+            if (i == 0) {
+                close(pfd[0]);
+
+                dup2(pfd[1], STDOUT_FILENO);
+                close(pfd[1]);
+            } else if (i == cmds->len - 1) {
+                dup2(pfds[i - 1][0], STDIN_FILENO);
+                close(pfds[i - 1][0]);
+            } else {
+                close(pfds[i][0]);
+
+                dup2(pfds[i - 1][0], STDIN_FILENO);
+                dup2(pfds[i][1], STDOUT_FILENO);
+                close(pfds[i - 1][0]);
+                close(pfds[i][1]);
+            }
+
+            mysystem(tcmd);
+            _exit(0);
+        } else {
+            pids[i] = pid;
+
+            if (i == 0) {
+                close(pfd[1]);
+            } else if (i == cmds->len - 1) {
+                close(pfds[i - 1][0]);
+            } else {
+                close(pfds[i - 1][0]);
+                close(pfds[i][1]);
+            }
+        }
+    }
+
+    for (int i = 0; i < cmds->len; i++) {
+        int status = 0;
+        waitpid(pids[i], &status, 0);
+    }
+    
+    // Close output file and restore STDOUT and STDERR
+    close(task_fd);
+    dup2(old_stdout, STDOUT_FILENO);
+    dup2(old_stderr, STDERR_FILENO);
+    close(old_stdout);
+    close(old_stderr);
+
+    DEBUG_PRINT(LOG_HEADER_PID "Finished running command '%s'\n", pid, input);
+}
+
+Worker start_worker(int operator_pd, int worker_id, char* output_dir) {
     #define ERR NULL
     ERROR_HEADER
     int _err_pid = 0;
@@ -75,6 +162,20 @@ Worker start_worker(int operator_pd, int worker_id) {
                         req->header.task_id, 
                         (char*)(req->data)
                     );
+
+                    // Execute Task
+                    // char* task_name = isnprintf(TASK "%d", req->header.task_id);
+                    // char* task_path = join_paths(2, output_dir, task_name);
+                    // int task_fd = SAFE_OPEN(task_path, O_WRONLY | O_CREAT, 0644);
+                    // dup2(task_fd, STDOUT_FILENO);
+
+                    char* task_name = isnprintf(TASK "%d", req->header.task_id);
+                    char* task_path = join_paths(2, output_dir, task_name);
+
+                    run_task(req->data, task_path);
+
+                    free(task_path);
+                    free(task_name);
 
                     WorkerCompletionResponseDatagram res = create_worker_completion_response_datagram();
                     res->header.task_id = req->header.task_id;
