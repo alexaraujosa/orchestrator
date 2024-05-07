@@ -8,6 +8,8 @@
  *   The amount of worker processes to be created depends on the server input *
  * parallel_tasks.                                                            *
  ******************************************************************************/
+ 
+#define _XOPEN_SOURCE 500
 
 #include "server/worker.h"
 #include "server/worker_datagrams.h"
@@ -19,11 +21,13 @@
 #include "common/error.h"
 #include "common/io/fifo.h"
 #include "common/io/io.h"
+#include "common/util/string.h"
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <string.h>
 
 #define LOG_HEADER "[WORKER] "
 #define LOG_HEADER_PID "[WORKER@%d] "
@@ -120,9 +124,10 @@ int run_task(char* input, char* output_file) {
     close(old_stderr);
 
     DEBUG_PRINT(LOG_HEADER_PID "Finished running command '%s'\n", pid, input);
+    return 0;
 }
 
-Worker start_worker(int operator_pd, int worker_id, char* output_dir) {
+Worker start_worker(int operator_pd, int worker_id, char* output_dir, char* history_file_path) {
     #define ERR NULL
     ERROR_HEADER
     int _err_pid = 0;
@@ -149,6 +154,34 @@ Worker start_worker(int operator_pd, int worker_id, char* output_dir) {
                 case WORKER_DATAGRAM_MODE_STATUS_REQUEST: {
                     WorkerStatusRequestDatagram req = read_partial_worker_status_request_datagram(pfd[READ], dh);
                     MAIN_LOG(LOG_HEADER_PID "Received status request.\n", pid);
+
+                    int history_fd = SAFE_OPEN(history_file_path, O_RDONLY, 0644);
+
+                    char* res = NULL;
+                    res = strdup("Scheduled tasks:\n");
+                    for(int i = 0 ; i < req->num_tasks_queued ; i++) {
+                        char* _res = res;
+                        res = isnprintf("%s%d %s\n", res, req->tasks[i]->task_id, req->tasks[i]->data);
+                        free(_res);
+                    }
+
+                    char* _back = res;
+                    res = isnprintf("%s\nExecuting tasks:\n", res);
+                    free(_back);
+                    for(int i = req->num_tasks_queued ; i < req->num_tasks ; i++) {
+                        char* _res = res;
+                        res = isnprintf("%s%d %s\n", res, req->tasks[i]->task_id, req->tasks[i]->data);
+                        free(_res);
+                    }
+
+                    _back = res;
+                    res = isnprintf("%s\nCompleted tasks:\n", res);
+                    free(_back);
+
+                    // lseek(history_fd, 0, SEEK_END); // TODO check error
+
+                    // while(read(history_fd, ))
+
                     break;
                 }
                 case WORKER_DATAGRAM_MODE_EXECUTE_REQUEST: {
@@ -187,6 +220,8 @@ Worker start_worker(int operator_pd, int worker_id, char* output_dir) {
                 }
                 case WORKER_DATAGRAM_MODE_SHUTDOWN_REQUEST: {
                     WorkerShutdownRequestDatagram req = read_partial_worker_shutdown_request_datagram(pfd[READ], dh);
+                    UNUSED(req);
+
                     MAIN_LOG(LOG_HEADER_PID "Received shutdown request.\n", pid);
                     shutdown_requested = 1;
                     break;

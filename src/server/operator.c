@@ -14,6 +14,7 @@
 #define _CRITICAL
 
 #include <sys/wait.h>
+#include <stdint.h>
 #include "server/operator.h"
 #include "server/worker.h"
 #include "server/worker_datagrams.h"
@@ -77,7 +78,7 @@ static inline WorkerArray create_workers_array() { // len == num_parallel_tasks 
 }
 
 OperatorWorkerEntry get_idle_worker(WorkerArray workers) {
-    for (guint i = 0; i < workers->len; i++) {
+    for (guint i = 1; i < workers->len; i++) {
         OperatorWorkerEntry entry = g_array_index(workers, OperatorWorkerEntry, i);
         if (entry->status == WORKER_STATUS_IDLE) return entry;
     }
@@ -103,11 +104,14 @@ typedef struct operator_task {
 typedef GQueue* RequestQueue;
 
 #pragma region ======= FUNCTION PREDICATES =======
-static inline gint request_queue_compare_fifo(gconstpointer a, gconstpointer b) {
+static inline gint request_queue_compare_fifo(gconstpointer a, gconstpointer b, gpointer user_data) {
+    UNUSED(user_data);
     return ((OperatorTask)a)->start - ((OperatorTask)b)->start;
 }
 
-static inline gint request_queue_compare_sjb(gconstpointer a, gconstpointer b) {
+static inline gint request_queue_compare_sjb(gconstpointer a, gconstpointer b, gpointer user_data) {
+    UNUSED(user_data);
+
     OperatorTask task_a = (OperatorTask)a;
     OperatorTask task_b = (OperatorTask)b;
 
@@ -117,7 +121,9 @@ static inline gint request_queue_compare_sjb(gconstpointer a, gconstpointer b) {
     return 0;
 }
 
-static inline gint request_queue_compare_ljb(gconstpointer a, gconstpointer b) {
+static inline gint request_queue_compare_ljb(gconstpointer a, gconstpointer b, gpointer user_data) {
+    UNUSED(user_data);
+
     OperatorTask task_a = (OperatorTask)a;
     OperatorTask task_b = (OperatorTask)b;
 
@@ -127,7 +133,9 @@ static inline gint request_queue_compare_ljb(gconstpointer a, gconstpointer b) {
     return 0;
 }
 
-static inline gint request_queue_compare_certain(gconstpointer a, gconstpointer b) {
+static inline gint request_queue_compare_certain(gconstpointer a, gconstpointer b, gpointer user_data) {
+    UNUSED(user_data);
+
     OperatorTask task_a = (OperatorTask)a;
     OperatorTask task_b = (OperatorTask)b;
 
@@ -178,7 +186,12 @@ void complete_task_from_queue(RequestQueue active_request_queue, int task_id) {
 
     if (task != NULL) {
         int ind = g_queue_index(active_request_queue, task->data);
+        OperatorTask task = g_queue_peek_nth(active_request_queue, ind);
+        struct timeval end; 
+        gettimeofday(&end, NULL);
+        time_t time_took = (end.tv_sec*1000 + end.tv_usec/1000) - (task->start->tv_sec*1000 + task->start->tv_usec/1000);
         DEBUG_PRINT(LOG_HEADER "CTFQ Index: %d\n", ind);
+        DEBUG_PRINT(LOG_HEADER "Time elapsed: %ld\n", time_took);
 
         g_queue_pop_nth(active_request_queue, ind);
     }
@@ -220,8 +233,8 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
     #define CRITICAL_END SET_CRITICAL_MARK(0);
 
     CRITICAL_START
-        int write_to_history_fd = SAFE_OPEN(history_file_path, O_APPEND | O_CREAT, 0600);    //TODO: Depois para ler quando se pede um status, o O_APPEND n deixa
-        int read_from_history_fd = SAFE_OPEN(history_file_path, O_RDONLY, 0600);  //SEE: Podemos abrir dois descritores e um fica encarregue da escrita e outro da leitura
+        // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA↓↓↓↓↓↓↓↓AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFUCK
+        int write_to_history_fd = SAFE_OPEN(history_file_path, O_APPEND | O_WRONLY | O_CREAT, 0644);
     CRITICAL_END
 
     MAIN_LOG(LOG_HEADER "Starting operator.\n");
@@ -238,7 +251,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
         int workers_busy = 0;
 
         for(int i = 0 ; i < num_parallel_tasks + 1 ; i++) {
-            Worker worker = start_worker(pd[1], i, output_dir);
+            Worker worker = start_worker(pd[1], i, output_dir, history_file_path);
 
             OperatorWorkerEntry entry = create_operator_worker_entry(worker);
             g_array_insert_val(worker_array, i, entry);
@@ -253,6 +266,7 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
         #pragma region ======= WORKER REQUEST QUEUE INITIALIZATION =======
         RequestQueue active_request_queue = create_request_queue();
         RequestQueue request_waiting_queue = create_request_queue();
+        RequestQueue status_request_queue = create_request_queue();
         #pragma endregion
 
 
@@ -324,6 +338,31 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
                             );
                             break;
                         }
+                        case DATAGRAM_MODE_STATUS_REQUEST: {
+                            StatusRequestDatagram request = read_partial_status_request_datagram(pd[0], header);
+
+                            char* req_str = status_request_datagram_to_string(request, 1);
+                            MAIN_LOG(LOG_HEADER "Received status request: %s\n", req_str);
+                            free(req_str);
+
+                            // FUCK OFF GCC, I'M NOT FUCKING TRYING TO CAST A VOID* TO INT, YOU USELESS FUCK
+                            pid_t* req_pid = (pid_t*)calloc(sizeof(pid_t), 1);
+                            *req_pid = request->header.pid;
+
+                            OperatorTask task = create_task(
+                                0,
+                                0,
+                                (void*)(&req_pid),
+                                sizeof(WORKER_STATUS_REQUEST_DATAGRAM)
+                            );
+
+                            add_task_to_backlog(
+                                status_request_queue,
+                                request_queue_compare_fifo,
+                                task
+                            );
+                            break;
+                        }
                         case DATAGRAM_MODE_CLOSE_REQUEST: {
                             MAIN_LOG(LOG_HEADER "Received shutdown request.\n");
                             shutdown_requested = 1;
@@ -355,12 +394,77 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
                                 header
                             );
 
-                            OperatorWorkerEntry entry = get_worker_by_id(worker_array, res->worker_id);
-                            complete_task_from_queue(active_request_queue, res->header.task_id);
-                            entry->status = WORKER_STATUS_IDLE;
-                            workers_busy--;
+                            MAIN_LOG(LOG_HEADER "Received Completion Response from Worker #%d.\n", res->worker_id);
 
-                            MAIN_LOG(LOG_HEADER "Worker #%d (@%d) finished.\n", res->worker_id, entry->worker->pid);
+                            if(res->worker_id != 0) {
+                                DEBUG_PRINT(LOG_HEADER "0a\n");
+                                OperatorWorkerEntry entry = get_worker_by_id(worker_array, res->worker_id);
+                                // complete_task_from_queue(active_request_queue, res->header.task_id);
+                                
+                                // DEBUG_PRINT(LOG_HEADER "0b %p\n", res->header.task_id);
+                                // GList* task = g_queue_find_custom(active_request_queue, &res->header.task_id, find_queue_task_by_id);
+
+                                // DEBUG_PRINT(LOG_HEADER "0c %p\n", task);
+                                // if(task != NULL) {
+                                //     DEBUG_PRINT(LOG_HEADER "1\n");
+                                //     // Get task
+                                //     int ind = g_queue_index(active_request_queue, task->data);
+                                //     OperatorTask task = g_queue_peek_nth(active_request_queue, ind);
+
+                                //     DEBUG_PRINT(LOG_HEADER "2\n");
+                                //     // Get time of execution
+                                //     struct timeval end; 
+                                //     gettimeofday(&end, NULL);
+                                //     time_t time_took = (end.tv_sec*1000 + end.tv_usec/1000) - (task->start->tv_sec*1000 + task->start->tv_usec/1000);
+                                //     DEBUG_PRINT(LOG_HEADER "3\n");
+
+                                //     // Write to history
+                                //     WorkerExecuteRequestDatagram execute = (WorkerExecuteRequestDatagram)task->datagram;
+                                //     char* res = isnprintf("%d %s %dms\n", task->id_task, execute->data, time_took);
+                                    
+                                //     DEBUG_PRINT(LOG_HEADER "4\n");
+                                //     DEBUG_PRINT(LOG_HEADER "RES: %s\n", res);
+
+                                //     SAFE_WRITE(write_to_history_fd, res, strlen(res));
+                                //     free(res);
+
+                                //     DEBUG_PRINT(LOG_HEADER "CTFQ Index: %d\n", ind);
+
+                                //     g_queue_pop_nth(active_request_queue, ind);
+                                // }
+
+                                GList* task = g_queue_find_custom(active_request_queue, &(res->header.task_id), find_queue_task_by_id);
+                                if (task != NULL) {
+                                    // Get task
+                                    int ind = g_queue_index(active_request_queue, task->data);
+                                    OperatorTask task = g_queue_peek_nth(active_request_queue, ind);
+                                    
+                                    // Get time of execution
+                                    struct timeval end; 
+                                    gettimeofday(&end, NULL);
+                                    time_t time_took = (end.tv_sec*1000 + end.tv_usec/1000) - (task->start->tv_sec*1000 + task->start->tv_usec/1000);
+
+                                    // Write to history
+                                    WorkerExecuteRequestDatagram execute = (WorkerExecuteRequestDatagram)task->datagram;
+                                    char* res = isnprintf("%d %s %dms\n", task->id_task, execute->data, time_took);
+
+                                    CRITICAL_START
+                                        SAFE_WRITE(write_to_history_fd, res, strlen(res));
+                                    CRITICAL_END
+                                    free(res);
+
+                                    DEBUG_PRINT(LOG_HEADER "CTFQ Index: %d\n", ind);
+                                    DEBUG_PRINT(LOG_HEADER "Time elapsed: %ld\n", time_took);
+
+                                    g_queue_pop_nth(active_request_queue, ind);
+                                }
+
+                                // Reset worker
+                                entry->status = WORKER_STATUS_IDLE;
+                                workers_busy--;
+
+                                MAIN_LOG(LOG_HEADER "Worker #%d (@%d) finished.\n", res->worker_id, entry->worker->pid);
+                            }
                             break;
                         }
                         default: {
@@ -399,7 +503,96 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
                 entry->status = WORKER_STATUS_BUSY;
                 workers_busy++;
             } else {
-                DEBUG_PRINT(LOG_HEADER "No tasks queued.\n");
+                DEBUG_PRINT(LOG_HEADER "No execute tasks queued.\n");
+            }
+
+            // if(status_request_queue->length > 0) {
+            if (0) {
+                OperatorWorkerEntry entry = g_array_index(worker_array, OperatorWorkerEntry, 0);
+                if(entry->status == WORKER_STATUS_IDLE) {
+                    OperatorTask task = get_next_task(status_request_queue);
+                    int num_clients = status_request_queue->length;
+                    int* clients = SAFE_ALLOC(int*, sizeof(int) * num_clients);
+
+                    UNUSED(task);
+                    
+                    for(int i = 0 ; i < num_clients ; i++) {
+                        OperatorTask task = g_queue_peek_nth(status_request_queue, i);
+                        clients[i] = (uintptr_t)(task->datagram);
+                    }
+
+                    int num_tasks = request_waiting_queue->length + active_request_queue->length;
+                    WorkerStatusPayload* tasks = SAFE_ALLOC(WorkerStatusPayload*, sizeof(WorkerStatusPayload) * num_tasks);
+                    for(int i = 0 ; request_waiting_queue->length ; i++) {
+                        OperatorTask task = g_queue_peek_nth(request_waiting_queue, i);
+                        tasks[i]->task_id = task->id_task;
+                        WorkerExecuteRequestDatagram execute = (WorkerExecuteRequestDatagram)task->datagram;
+                        memcpy(tasks[i]->data, execute->data, sizeof(EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN + 1));
+                    }
+                    for(int i = request_waiting_queue->length, j = 0 ; i < num_tasks ; i++, j++) {
+                        OperatorTask task = g_queue_peek_nth(active_request_queue, j);
+                        tasks[i]->task_id = task->id_task;
+                        WorkerExecuteRequestDatagram execute = (WorkerExecuteRequestDatagram)task->datagram;
+                        memcpy(tasks[i]->data, execute->data, sizeof(EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN + 1));
+                    }
+
+                    WorkerStatusRequestDatagram req = create_worker_status_request_datagram(
+                        num_clients, 
+                        clients, 
+                        request_waiting_queue->length,
+                        num_tasks,
+                        tasks
+                    );
+
+                    // Write Worker Status Request Datagram
+                    {
+                        uint8_t* dg = SAFE_ALLOC(
+                            uint8_t*, 
+                            sizeof(WORKER_DATAGRAM_HEADER) 
+                            + sizeof(int) + sizeof(int) * req->num_clients
+                            + sizeof(int) + sizeof(WorkerStatusPayload) * req->num_tasks
+                        );
+
+                        // Copy header
+                        memcpy(dg, &(req->header), sizeof(WORKER_DATAGRAM_HEADER));
+
+                        // Copy clients
+                        memcpy((((void*)(dg)) + sizeof(WORKER_DATAGRAM_HEADER)), &(req->num_clients), sizeof(int));
+                        memcpy((((void*)(dg)) + sizeof(WORKER_DATAGRAM_HEADER) + sizeof(int)), req->clients, req->num_clients * sizeof(int));
+
+                        // Copy tasks
+                        memcpy(
+                            (((void*)(dg)) + sizeof(WORKER_DATAGRAM_HEADER) + sizeof(int) + req->num_clients * sizeof(int)), 
+                            &(req->num_tasks_queued), 
+                            sizeof(int)
+                        );
+                        memcpy(
+                            (((void*)(dg)) + sizeof(WORKER_DATAGRAM_HEADER) + sizeof(int) + req->num_clients * sizeof(int) + sizeof(int)), 
+                            &(req->num_tasks), 
+                            sizeof(int)
+                        );
+                        memcpy(
+                            (((void*)(dg)) + sizeof(WORKER_DATAGRAM_HEADER) + sizeof(int) + req->num_clients * sizeof(int) + sizeof(int) + sizeof(int)), 
+                            req->tasks, 
+                            req->num_clients * sizeof(WorkerStatusPayload)
+                        );
+
+                        SAFE_WRITE(
+                            entry->worker->pipe_write, 
+                            dg, 
+                            sizeof(WORKER_DATAGRAM_HEADER) 
+                                + sizeof(int) 
+                                + req->num_clients * sizeof(int) 
+                                + sizeof(int) 
+                                + sizeof(int) 
+                                + req->num_clients * sizeof(WorkerStatusPayload)
+                        );
+                    }
+
+                    // TODO: Mandar para o caralho
+                }
+            } else {
+                DEBUG_PRINT(LOG_HEADER "No status tasks queued.\n");
             }
         }
 
@@ -456,7 +649,6 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
             );
         }
         
-        close(read_from_history_fd);
         close(write_to_history_fd);
         close(pd[0]);
 

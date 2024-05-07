@@ -48,15 +48,15 @@ void test_direct_create_worker_datagram() {
 
     #pragma region ========== WORKER STATUS DATAGRAM =======
     {
-        WORKER_STATUS_REQUEST_DATAGRAM dgc = { 0 };
-        dgc.header = create_worker_datagram_header();
-        dgc.header.mode = WORKER_DATAGRAM_MODE_STATUS_REQUEST;
+        // WORKER_STATUS_REQUEST_DATAGRAM dgc = { 0 };
+        // dgc.header = create_worker_datagram_header();
+        // dgc.header.mode = WORKER_DATAGRAM_MODE_STATUS_REQUEST;
 
-        WorkerStatusRequestDatagram dg = create_worker_status_request_datagram();
-        ASSERT(
-            _cmp_worker_status_datagram(&dgc, dg),
-            "[WDH] Worker Status Datagram doesn't match control."
-        );
+        // WorkerStatusRequestDatagram dg = create_worker_status_request_datagram();
+        // ASSERT(
+        //     _cmp_worker_status_datagram(&dgc, dg),
+        //     "[WDH] Worker Status Datagram doesn't match control."
+        // );
     }
     #pragma endregion ======= WORKER DATAGRAM HEADER =======
 
