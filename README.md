@@ -1,6 +1,6 @@
 # Operating Systems Project
 
-**Grupo:** idfk
+**Grupo:** 56
 
 a104257,Alex Araújo de Sá,alexaraujosa  
 a96268,Paulo Alexandre Rodrigues Ferreira,Pauloarf  
