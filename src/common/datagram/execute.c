@@ -34,7 +34,6 @@ ExecuteRequestDatagram create_execute_request_datagram() {
     dg->header = create_datagram_header();
     dg->header.mode = DATAGRAM_MODE_EXECUTE_REQUEST;
 
-    //WARN: verificar parte do tempo 
     dg->time = 0;
     memset(dg->data, 0, 300);
 
@@ -64,7 +63,6 @@ ExecuteRequestDatagram read_partial_execute_request_datagram(int fd, DATAGRAM_HE
     #undef ERR
 }
 
-//WARN: verificar o tempo aqui tb
 char* execute_request_datagram_to_string(ExecuteRequestDatagram dg, int expandEnums, int stringPayload) {
     char* dh = datagram_header_to_string(&dg->header, expandEnums);
     short int time = dg->time;

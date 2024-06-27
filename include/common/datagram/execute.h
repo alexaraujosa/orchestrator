@@ -29,7 +29,7 @@
 #define EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN 300
 typedef struct execute_request_datagram {
     DATAGRAM_HEADER header;
-    short int time; // TODO: change to speculate_time
+    short int time; 
     char data[EXECUTE_REQUEST_DATAGRAM_PAYLOAD_LEN];
 } EXECUTE_REQUEST_DATAGRAM, *ExecuteRequestDatagram;
 

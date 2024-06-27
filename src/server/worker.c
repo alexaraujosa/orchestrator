@@ -178,10 +178,6 @@ Worker start_worker(int operator_pd, int worker_id, char* output_dir, char* hist
                     res = isnprintf("%s\nCompleted tasks:\n", res);
                     free(_back);
 
-                    // lseek(history_fd, 0, SEEK_END); // TODO check error
-
-                    // while(read(history_fd, ))
-
                     break;
                 }
                 case WORKER_DATAGRAM_MODE_EXECUTE_REQUEST: {

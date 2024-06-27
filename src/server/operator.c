@@ -161,7 +161,10 @@ OperatorTask create_task(int id_task, int speculate_time, WorkerDatagram datagra
     execute_task->datagram = datagram;
     execute_task->datagram_size = datagram_size;
     execute_task->start = malloc(sizeof(struct timeval));
-    gettimeofday(execute_task->start, NULL);    // TODO: Check for error
+    if(gettimeofday(execute_task->start, NULL) == -1) {
+        perror("Unable to setup start time.");
+        exit(1);
+    }
 
     return execute_task;
 }
@@ -286,7 +289,6 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
 
             switch (PROCESS_MARK_SOLVER(mark)) {
                 case 0: {
-                    // TODO: Possibly simply ignore the request?
                     shutdown_requested = 1;
                     break;
                 }
@@ -303,7 +305,6 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
                         // Datagram not supported.
                         MAIN_LOG(LOG_HEADER "Received unsupported datagram with version %d:\n", header.version);
 
-                        // TODO: Read until next Process Mark.
                         drain_fifo(pd[0]);
                         continue;
                     }
@@ -489,7 +490,6 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
 
             DEBUG_PRINT(LOG_HEADER "Workers available: %d/%d\n", num_parallel_tasks - workers_busy, num_parallel_tasks);
             if (request_waiting_queue->length > 0) {
-                // TODO: Dispatch status tasks
 
                 if (workers_busy == num_parallel_tasks) {
                     MAIN_LOG(LOG_HEADER "Unable to dispatch tasks: All workers are busy.\n");
@@ -589,7 +589,6 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
                         );
                     }
 
-                    // TODO: Mandar para o caralho
                 }
             } else {
                 DEBUG_PRINT(LOG_HEADER "No status tasks queued.\n");
@@ -600,7 +599,6 @@ OPERATOR start_operator(int num_parallel_tasks, char* output_dir, char* history_
         #pragma region ======= GRACEFUL SHUTDOWN =======
         MAIN_LOG(LOG_HEADER "Shutting down operator...\n");
 
-        // TODO: Suicide Workers
         for (guint i = 0; i < worker_array->len; i++) {
             OperatorWorkerEntry entry = g_array_index(worker_array, OperatorWorkerEntry, i);
             MAIN_LOG(

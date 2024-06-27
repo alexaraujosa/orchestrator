@@ -28,9 +28,6 @@ typedef struct operator {
 
 
 #pragma region ======= HISTORY =======
-//NOTE: NÃO SEI SE PERCEBI BEM, MAS A IDEIA ENTÃO SERIA TER FUNÇÕES RELACIONADAS AO HISTORY (FILE INTEIRO) NESTA REGION
-// e ter a zona de baixo para coisas relacionadas com a entry em especifico
-
 
 /**
  * @brief Checks whether the history has entrys which are supported on the current version.
